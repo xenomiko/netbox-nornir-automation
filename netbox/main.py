@@ -17,6 +17,11 @@ from netbox_services import (
     sync_cable,
 )
 from dotenv import load_dotenv
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 
 def main():
