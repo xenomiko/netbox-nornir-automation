@@ -1,0 +1,10 @@
+arista_ceos:
+  platform: eos
+  username: admin
+  password: admin
+  connection_options:
+    napalm:
+      platform: eos
+      extras:
+        optional_args:
+          transport: https

@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{base_url}}/dcim/interfaces/"
+method: POST
+headers:
+  Authorization: "{{token}}"
+body:
+  type: json
+  content: |-
+    {
+      "device": {"name": "lab-sw-01"},
+      "name": "Management0",
+      "type": "1000base-t"
+    }
+settings: {}
+order: 6000

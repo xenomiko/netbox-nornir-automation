@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{base_url}}/ipam/ip-addresses/"
+method: POST
+headers:
+  Authorization: "{{token}}"
+body:
+  type: json
+  content: |-
+    {
+      "address": "192.168.1.10/24",
+      "status": "active",
+      "assigned_object_type": "dcim.interface",
+      "assigned_object_id": 1
+    }
+settings: {}
+order: 7000

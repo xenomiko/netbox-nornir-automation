@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{base_url}}/dcim/device-types/"
+method: POST
+headers:
+  Authorization: "{{token}}"
+body:
+  type: json
+  content: |-
+    {
+      "manufacturer": {"slug": "cisco"},
+      "model": "Catalyst 9300",
+      "slug": "catalyst-9300",
+      "u_height": 1
+    }
+settings: {}
+order: 4000

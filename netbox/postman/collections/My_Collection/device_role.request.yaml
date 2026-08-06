@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{base_url}}/dcim/device-roles/"
+method: POST
+headers:
+  Authorization: "{{token}}"
+body:
+  type: json
+  content: |-
+    {
+      "name": "Core Switch",
+      "slug": "core-switch",
+      "color": "009688"
+    }
+settings: {}
+order: 3000

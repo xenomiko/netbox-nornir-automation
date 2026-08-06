@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{base_url}}/dcim/devices/?role=core-switch&status=active"
+method: GET
+headers:
+  Authorization: "{{token}}"
+queryParams:
+  role: core-switch
+  status: active
+settings: {}
+order: 9000

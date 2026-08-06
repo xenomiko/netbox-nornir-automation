@@ -1,0 +1,133 @@
+sites:
+  - name: "Containerlab Environment"
+    slug: "clab-env"
+    status: "active"
+
+manufacturers:
+  - name: "Arista"
+    slug: "arista"
+
+roles:
+  - name: "Virtual Router"
+    slug: "virtual-router"
+    color: "00bcd4"
+
+device_types:
+  - model: "cEOS-LAB"
+    slug: "ceos-lab"
+    manufacturer: "arista"
+    u_height: 1
+    is_full_depth: false
+
+devices:
+  - name: "ceos1"
+    site: "clab-env"
+    device_type: "ceos-lab"
+    role: "virtual-router"
+    status: "active"
+
+  - name: "ceos2"
+    site: "clab-env"
+    device_type: "ceos-lab"
+    role: "virtual-router"
+    status: "active"
+
+  - name: "ceos3"
+    site: "clab-env"
+    device_type: "ceos-lab"
+    role: "virtual-router"
+    status: "staged"
+
+interfaces:
+  - device_name: "ceos1"
+    name: "eth0"
+    type: "virtual"
+    mgmt_only: true
+
+  - device_name: "ceos2"
+    name: "eth0"
+    type: "virtual"
+    mgmt_only: true
+
+  - device_name: "ceos3"
+    name: "eth0"
+    type: "virtual"
+    mgmt_only: true
+
+  # Data Interfaces
+  - device_name: "ceos1"
+    name: "eth1"
+    type: "1000base-t"
+  - device_name: "ceos1"
+    name: "eth2"
+    type: "1000base-t"
+
+  - device_name: "ceos2"
+    name: "eth1"
+    type: "1000base-t"
+  - device_name: "ceos2"
+    name: "eth2"
+    type: "1000base-t"
+
+  - device_name: "ceos3"
+    name: "eth1"
+    type: "1000base-t"
+  - device_name: "ceos3"
+    name: "eth2"
+    type: "1000base-t"
+
+ip_addresses:
+  - address: "172.20.20.3/24"
+    status: "active"
+    device_name: "ceos1"
+    interface_name: "eth0"
+
+  - address: "3fff:172:20:20::3/64"
+    status: "active"
+    device_name: "ceos1"
+    interface_name: "eth0"
+
+  - address: "172.20.20.4/24"
+    status: "active"
+    device_name: "ceos2"
+    interface_name: "eth0"
+
+  - address: "3fff:172:20:20::4/64"
+    status: "active"
+    device_name: "ceos2"
+    interface_name: "eth0"
+
+  - address: "172.20.20.2/24"
+    status: "active"
+    device_name: "ceos3"
+    interface_name: "eth0"
+
+  - address: "3fff:172:20:20::2/64"
+    status: "active"
+    device_name: "ceos3"
+    interface_name: "eth0"
+
+cables:
+  - status: "connected"
+    a_side:
+      device: "ceos1"
+      interface: "eth1"
+    b_side:
+      device: "ceos2"
+      interface: "eth1"
+
+  - status: "connected"
+    a_side:
+      device: "ceos2"
+      interface: "eth2"
+    b_side:
+      device: "ceos3"
+      interface: "eth1"
+
+  - status: "connected"
+    a_side:
+      device: "ceos3"
+      interface: "eth2"
+    b_side:
+      device: "ceos1"
+      interface: "eth2"

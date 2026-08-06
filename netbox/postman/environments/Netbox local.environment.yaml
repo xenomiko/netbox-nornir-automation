@@ -1,0 +1,15 @@
+owner: "56790626"
+team: null
+lastUpdatedBy: "56790626"
+lastRevision: 1784637398000
+name: Netbox local
+color: null
+values:
+  - key: base_url
+    value: ""
+    enabled: true
+  - key: token
+    value: ""
+    enabled: true
+createdAt: 2026-07-21T12:35:33.000Z
+updatedAt: 2026-07-21T12:36:38.000Z

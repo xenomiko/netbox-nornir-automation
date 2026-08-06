@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/dcim/devices/"
+method: POST
+headers:
+  Authorization: "{{token}}"
+body:
+  type: json
+  content: |-
+    {
+      "name": "lab-sw-01",
+      "device_type": {"slug": "catalyst-9300"},
+      "role": {"slug": "core-switch"},
+      "site": 1,
+      "status": "active"
+    }
+settings: {}
+order: 5000

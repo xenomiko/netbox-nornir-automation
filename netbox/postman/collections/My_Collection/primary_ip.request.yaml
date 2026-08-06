@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_url}}/dcim/devices/1/"
+method: PATCH
+headers:
+  Authorization: "{{token}}"
+body:
+  type: json
+  content: |-
+    {
+      "primary_ip4": 1
+    }
+settings: {}
+order: 8000

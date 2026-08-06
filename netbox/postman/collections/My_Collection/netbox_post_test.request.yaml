@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{base_url}}/dcim/manufacturers/"
+method: POST
+headers:
+  Authorization: "{{token}}"
+body:
+  type: json
+  content: |-
+    {
+      "name": "arista",
+      "slug": "arista"
+    }
+settings: {}
+order: 2000

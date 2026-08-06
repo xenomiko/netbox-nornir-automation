@@ -1,0 +1,14 @@
+ceos1:
+  hostname: 172.20.20.2
+  groups:
+    - arista_ceos
+
+ceos2:
+  hostname: 172.20.20.4
+  groups:
+    - arista_ceos
+
+ceos3:
+  hostname: 172.20.20.3
+  groups:
+    - arista_ceos
