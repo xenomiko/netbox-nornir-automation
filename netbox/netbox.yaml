@@ -6,6 +6,10 @@ sites:
 manufacturers:
   - name: "Arista"
     slug: "arista"
+  - name: "Cisco"
+    slug: "cisco"
+  - name: "Aruba"
+    slug: "aruba"  
 
 roles:
   - name: "Virtual Router"
@@ -16,6 +20,16 @@ device_types:
   - model: "cEOS-LAB"
     slug: "ceos-lab"
     manufacturer: "arista"
+    u_height: 1
+    is_full_depth: false
+  - model: "vIOS"
+    slug: "vios"
+    manufacturer: "cisco"
+    u_height: 1
+    is_full_depth: false
+  - model: "AOS-CX"
+    slug: "aoscx"
+    manufacturer: "aruba"
     u_height: 1
     is_full_depth: false
 
@@ -36,9 +50,22 @@ devices:
     site: "clab-env"
     device_type: "ceos-lab"
     role: "virtual-router"
-    status: "staged"
+    status: "active"
+
+  - name: "vios1"
+    site: "clab-env"
+    device_type: "vios"
+    role: "virtual-router"
+    status: "active"
+
+  - name: "aoscx1"
+    site: "clab-env"
+    device_type: "aoscx"
+    role: "virtual-router"
+    status: "active"  
 
 interfaces:
+  # Management Interfaces
   - device_name: "ceos1"
     name: "eth0"
     type: "virtual"
@@ -53,6 +80,16 @@ interfaces:
     name: "eth0"
     type: "virtual"
     mgmt_only: true
+
+  - device_name: "vios1"
+    name: "eth0"
+    type: "virtual"
+    mgmt_only: true
+
+  - device_name: "aoscx1"
+    name: "eth0"
+    type: "virtual"
+    mgmt_only: true    
 
   # Data Interfaces
   - device_name: "ceos1"
@@ -61,12 +98,18 @@ interfaces:
   - device_name: "ceos1"
     name: "eth2"
     type: "1000base-t"
+  - device_name: "ceos1"
+    name: "eth3"
+    type: "1000base-t"
 
   - device_name: "ceos2"
     name: "eth1"
     type: "1000base-t"
   - device_name: "ceos2"
     name: "eth2"
+    type: "1000base-t"
+  - device_name: "ceos2"
+    name: "eth3"
     type: "1000base-t"
 
   - device_name: "ceos3"
@@ -75,18 +118,45 @@ interfaces:
   - device_name: "ceos3"
     name: "eth2"
     type: "1000base-t"
+
+  - device_name: "vios1"
+    name: "eth1"
+    type: "1000base-t"
+  - device_name: "vios1"
+    name: "eth2"
+    type: "1000base-t"
+
+  - device_name: "aoscx1"
+    name: "eth1"
+    type: "1000base-t"
+  - device_name: "aoscx1"
+    name: "eth2"
+    type: "1000base-t"  
 
 ip_addresses:
+  # aoscx1
+  - address: "172.20.20.2/24"
+    status: "active"
+    device_name: "aoscx1"
+    interface_name: "eth0"
+
+  - address: "3fff:172:20:20::2/64"
+    status: "active"
+    device_name: "aoscx1"
+    interface_name: "eth0"
+
+  # vios1
   - address: "172.20.20.3/24"
     status: "active"
-    device_name: "ceos1"
+    device_name: "vios1"
     interface_name: "eth0"
 
   - address: "3fff:172:20:20::3/64"
     status: "active"
-    device_name: "ceos1"
+    device_name: "vios1"
     interface_name: "eth0"
 
+  # ceos2
   - address: "172.20.20.4/24"
     status: "active"
     device_name: "ceos2"
@@ -97,14 +167,26 @@ ip_addresses:
     device_name: "ceos2"
     interface_name: "eth0"
 
-  - address: "172.20.20.2/24"
+  # ceos3
+  - address: "172.20.20.5/24"
     status: "active"
     device_name: "ceos3"
     interface_name: "eth0"
 
-  - address: "3fff:172:20:20::2/64"
+  - address: "3fff:172:20:20::5/64"
     status: "active"
     device_name: "ceos3"
+    interface_name: "eth0"
+
+  # ceos1
+  - address: "172.20.20.6/24"
+    status: "active"
+    device_name: "ceos1"
+    interface_name: "eth0"
+
+  - address: "3fff:172:20:20::6/64"
+    status: "active"
+    device_name: "ceos1"
     interface_name: "eth0"
 
 cables:
@@ -130,4 +212,28 @@ cables:
       interface: "eth2"
     b_side:
       device: "ceos1"
+      interface: "eth2"
+
+  - status: "connected"
+    a_side:
+      device: "vios1"
+      interface: "eth1"
+    b_side:
+      device: "ceos1"
+      interface: "eth3"
+
+  - status: "connected"
+    a_side:
+      device: "aoscx1"
+      interface: "eth1"
+    b_side:
+      device: "ceos2"
+      interface: "eth3"
+
+  - status: "connected"
+    a_side:
+      device: "vios1"
+      interface: "eth2"
+    b_side:
+      device: "aoscx1"
       interface: "eth2"
