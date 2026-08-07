@@ -100,3 +100,12 @@ class IPAddressCreate(NetBoxBaseSchema):
     dns_name: Optional[str] = None
     description: Optional[str] = None
     tenant: Optional[int] = None
+
+
+class PlatformCreate(NetBoxBaseSchema):
+    name: str = Field(min_length=1)
+    slug: str = Field(min_length=1, max_length=100, pattern=SLUG_PATTERN)
+    manufacturer: Optional[int] = None
+    napalm_driver: Optional[str] = Field(default=None, min_length=1)
+    napalm_args: Optional[dict[str, Any]] = None
+    description: Optional[str] = None

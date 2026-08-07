@@ -1,23 +1,24 @@
 # main.py
-from schemas import (
-    SiteCreate,
-    ManufacturerCreate,
-    RoleCreate,
-    DeviceTypeCreate,
-    NetBoxDeviceCreate,
-    ConfigContextCreate,
-    InterfaceCreate,
-    IPAddressCreate,
-)
+import logging
+from dotenv import load_dotenv
 from netbox_services import (
     get_netbox_client,
     load_device_data,
     resolve_object_id,
-    sync_resources,
     sync_cable,
+    sync_resources,
 )
-from dotenv import load_dotenv
-import logging
+from schemas import (
+    ConfigContextCreate,
+    DeviceTypeCreate,
+    InterfaceCreate,
+    IPAddressCreate,
+    ManufacturerCreate,
+    NetBoxDeviceCreate,
+    PlatformCreate,
+    RoleCreate,
+    SiteCreate,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -34,6 +35,15 @@ def main():
         nb.dcim.manufacturers, data.get("manufacturers", []), ManufacturerCreate
     )
     sync_resources(nb.dcim.device_roles, data.get("roles", []), RoleCreate)
+
+    platforms_data = data.get("platforms", [])
+    for p in platforms_data:
+        if "manufacturer" in p and isinstance(p["manufacturer"], str):
+            p["manufacturer"] = resolve_object_id(
+                nb.dcim.manufacturers, slug=p["manufacturer"]
+            )
+
+    sync_resources(nb.dcim.platforms, platforms_data, PlatformCreate)
 
     device_types_data = data.get("device_types", [])
     for dt in device_types_data:
@@ -54,10 +64,13 @@ def main():
             nb.dcim.device_types, slug=dev["device_type"]
         )
         dev["role"] = resolve_object_id(nb.dcim.device_roles, slug=dev["role"])
+        if dev.get("platform"):
+            dev["platform"] = resolve_object_id(nb.dcim.platforms, slug=dev["platform"])
 
     sync_resources(
         nb.dcim.devices, devices_data, NetBoxDeviceCreate, lookup_field="name"
     )
+
     config_contexts_data = data.get("config_contexts", [])
     relation_endpoints = {
         "regions": nb.dcim.regions,
@@ -84,6 +97,7 @@ def main():
         ConfigContextCreate,
         lookup_field="name",
     )
+
     interfaces_data = data.get("interfaces", [])
     for iface in interfaces_data:
         iface["device"] = resolve_object_id(
@@ -95,6 +109,7 @@ def main():
         InterfaceCreate,
         lookup_field=[("device", "device_id"), "name"],
     )
+
     ip_addresses_data = data.get("ip_addresses", [])
     for ip in ip_addresses_data:
         device_name = ip.pop("device_name", None)
@@ -107,8 +122,12 @@ def main():
             ip["assigned_object_type"] = "dcim.interface"
             ip["assigned_object_id"] = iface_id
     sync_resources(
-        nb.ipam.ip_addresses, ip_addresses_data, IPAddressCreate, lookup_field="address"
+        nb.ipam.ip_addresses,
+        ip_addresses_data,
+        IPAddressCreate,
+        lookup_field="address",
     )
+
     cables_data = data.get("cables", [])
     sync_cable(nb, cables_data)
 

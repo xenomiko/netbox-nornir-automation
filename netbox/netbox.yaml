@@ -11,6 +11,20 @@ manufacturers:
   - name: "Aruba"
     slug: "aruba"  
 
+platforms:
+  - name: "Arista EOS"
+    slug: "arista_eos"
+    manufacturer: "arista"
+    napalm_driver: "eos"
+  - name: "Cisco IOS"
+    slug: "cisco_ios"
+    manufacturer: "cisco"
+    napalm_driver: "ios"
+  - name: "Aruba AOS-CX"
+    slug: "aruba_aoscx"
+    manufacturer: "aruba"
+    napalm_driver: "aoscx"
+
 roles:
   - name: "Virtual Router"
     slug: "virtual-router"
@@ -37,30 +51,35 @@ devices:
   - name: "ceos1"
     site: "clab-env"
     device_type: "ceos-lab"
+    platform: "arista_eos"
     role: "virtual-router"
     status: "active"
 
   - name: "ceos2"
     site: "clab-env"
     device_type: "ceos-lab"
+    platform: "arista_eos"
     role: "virtual-router"
     status: "active"
 
   - name: "ceos3"
     site: "clab-env"
     device_type: "ceos-lab"
+    platform: "arista_eos"
     role: "virtual-router"
     status: "active"
 
   - name: "vios1"
     site: "clab-env"
     device_type: "vios"
+    platform: "cisco_ios"
     role: "virtual-router"
     status: "active"
 
   - name: "aoscx1"
     site: "clab-env"
     device_type: "aoscx"
+    platform: "aruba_aoscx"
     role: "virtual-router"
     status: "active"  
 
