@@ -24,6 +24,8 @@ class NetBoxDeviceCreate(NetBoxBaseSchema):
     ] = "active"
     tenant: Optional[int] = None
     platform: Optional[int] = None
+    primary_ip4: Optional[int] = None
+    primary_ip6: Optional[int] = None
     serial: Optional[str] = Field(default=None, min_length=1)
     asset_tag: Optional[str] = Field(default=None, min_length=1)
     rack: Optional[int] = None

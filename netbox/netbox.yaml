@@ -13,17 +13,14 @@ manufacturers:
 
 platforms:
   - name: "Arista EOS"
-    slug: "arista_eos"
+    slug: "eos"
     manufacturer: "arista"
-    napalm_driver: "eos"
   - name: "Cisco IOS"
-    slug: "cisco_ios"
+    slug: "ios"
     manufacturer: "cisco"
-    napalm_driver: "ios"
   - name: "Aruba AOS-CX"
-    slug: "aruba_aoscx"
+    slug: "aoscx"
     manufacturer: "aruba"
-    napalm_driver: "aoscx"
 
 roles:
   - name: "Virtual Router"
@@ -51,35 +48,35 @@ devices:
   - name: "ceos1"
     site: "clab-env"
     device_type: "ceos-lab"
-    platform: "arista_eos"
+    platform: "eos"
     role: "virtual-router"
     status: "active"
 
   - name: "ceos2"
     site: "clab-env"
     device_type: "ceos-lab"
-    platform: "arista_eos"
+    platform: "eos"
     role: "virtual-router"
     status: "active"
 
   - name: "ceos3"
     site: "clab-env"
     device_type: "ceos-lab"
-    platform: "arista_eos"
+    platform: "eos"
     role: "virtual-router"
     status: "active"
 
   - name: "vios1"
     site: "clab-env"
     device_type: "vios"
-    platform: "cisco_ios"
+    platform: "ios"
     role: "virtual-router"
     status: "active"
 
   - name: "aoscx1"
     site: "clab-env"
     device_type: "aoscx"
-    platform: "aruba_aoscx"
+    platform: "aoscx"
     role: "virtual-router"
     status: "active"  
 
@@ -158,55 +155,65 @@ ip_addresses:
     status: "active"
     device_name: "aoscx1"
     interface_name: "eth0"
+    is_primary_ip4: true
 
   - address: "3fff:172:20:20::2/64"
     status: "active"
     device_name: "aoscx1"
     interface_name: "eth0"
+    is_primary_ip6: true
 
   # vios1
   - address: "172.20.20.3/24"
     status: "active"
     device_name: "vios1"
     interface_name: "eth0"
+    is_primary_ip4: true
 
   - address: "3fff:172:20:20::3/64"
     status: "active"
     device_name: "vios1"
     interface_name: "eth0"
+    is_primary_ip6: true
 
   # ceos2
   - address: "172.20.20.4/24"
     status: "active"
     device_name: "ceos2"
     interface_name: "eth0"
+    is_primary_ip4: true
 
   - address: "3fff:172:20:20::4/64"
     status: "active"
     device_name: "ceos2"
     interface_name: "eth0"
+    is_primary_ip6: true
 
   # ceos3
   - address: "172.20.20.5/24"
     status: "active"
     device_name: "ceos3"
     interface_name: "eth0"
+    is_primary_ip4: true
 
   - address: "3fff:172:20:20::5/64"
     status: "active"
     device_name: "ceos3"
     interface_name: "eth0"
+    is_primary_ip6: true
 
   # ceos1
   - address: "172.20.20.6/24"
     status: "active"
     device_name: "ceos1"
     interface_name: "eth0"
+    is_primary_ip4: true
 
   - address: "3fff:172:20:20::6/64"
     status: "active"
     device_name: "ceos1"
     interface_name: "eth0"
+    is_primary_ip6: true
 
 cables:
   - status: "connected"

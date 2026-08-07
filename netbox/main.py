@@ -111,9 +111,12 @@ def main():
     )
 
     ip_addresses_data = data.get("ip_addresses", [])
+    primary_ips_by_device = {}
     for ip in ip_addresses_data:
         device_name = ip.pop("device_name", None)
         interface_name = ip.pop("interface_name", None)
+        is_primary_ip4 = ip.pop("is_primary_ip4", False)
+        is_primary_ip6 = ip.pop("is_primary_ip6", False)
         if device_name and interface_name:
             dev_id = resolve_object_id(nb.dcim.devices, name=device_name)
             iface_id = resolve_object_id(
@@ -121,12 +124,34 @@ def main():
             )
             ip["assigned_object_type"] = "dcim.interface"
             ip["assigned_object_id"] = iface_id
+
+            if is_primary_ip4:
+                primary_ips_by_device.setdefault(device_name, {})["primary_ip4"] = ip[
+                    "address"
+                ]
+            if is_primary_ip6:
+                primary_ips_by_device.setdefault(device_name, {})["primary_ip6"] = ip[
+                    "address"
+                ]
+
     sync_resources(
         nb.ipam.ip_addresses,
         ip_addresses_data,
         IPAddressCreate,
         lookup_field="address",
     )
+
+    if primary_ips_by_device:
+        for dev in devices_data:
+            ip_fields = primary_ips_by_device.get(dev["name"])
+            if not ip_fields:
+                continue
+            for field, address in ip_fields.items():
+                dev[field] = resolve_object_id(nb.ipam.ip_addresses, address=address)
+
+        sync_resources(
+            nb.dcim.devices, devices_data, NetBoxDeviceCreate, lookup_field="name"
+        )
 
     cables_data = data.get("cables", [])
     sync_cable(nb, cables_data)
