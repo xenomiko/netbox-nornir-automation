@@ -68,19 +68,16 @@ def resolve_object_id(endpoint: Endpoint, **kwargs) -> int:
     return obj.id
 
 
-def sync_object(endpoint: Endpoint, lookup_kwargs: Dict[str, Any], payload: BaseModel):
+def sync_object(endpoint: Endpoint, existing_obj, payload: BaseModel):
     payload_dict = payload.model_dump(exclude_none=True)
     try:
-        existing_obj = endpoint.get(**lookup_kwargs)
         if existing_obj:
             updated = existing_obj.update(payload_dict)
             if updated:
-                logger.info(
-                    f"[{endpoint.name}] Updated object matching {lookup_kwargs}."
-                )
+                logger.info(f"[{endpoint.name}] Updated object ID {existing_obj.id}.")
             else:
                 logger.info(
-                    f"[{endpoint.name}] Object matching {lookup_kwargs} is already up-to-date."
+                    f"[{endpoint.name}] Object ID {existing_obj.id} is already up-to-date."
                 )
             return existing_obj
         created_obj = endpoint.create(payload_dict)
@@ -88,11 +85,8 @@ def sync_object(endpoint: Endpoint, lookup_kwargs: Dict[str, Any], payload: Base
             f"[{endpoint.name}] Successfully created object ID {created_obj.id}."
         )
         return created_obj
-
     except RequestError as e:
-        logger.error(
-            f"[{endpoint.name}] NetBox API request failed for {lookup_kwargs}. Error: {e}"
-        )
+        logger.error(f"[{endpoint.name}] NetBox API request failed. Error: {e}")
         raise
 
 
@@ -102,7 +96,31 @@ def sync_resources(
     model_class: Type[BaseModel],
     lookup_field: Union[str, List[Union[str, tuple]]] = "slug",
 ):
+    fields = [lookup_field] if isinstance(lookup_field, str) else lookup_field
+
+    def make_key_from_payload(payload: BaseModel) -> tuple:
+        key_parts = []
+        for f in fields:
+            attr_name, _ = f if isinstance(f, tuple) else (f, f)
+            key_parts.append(getattr(payload, attr_name))
+        return tuple(key_parts)
+
+    def make_key_from_existing(obj) -> tuple:
+        key_parts = []
+        for f in fields:
+            _, param_name = f if isinstance(f, tuple) else (f, f)
+            key_parts.append(getattr(obj, param_name, None))
+        return tuple(key_parts)
+
+    try:
+        existing_objects = list(endpoint.all())
+    except RequestError as e:
+        logger.error(f"[{endpoint.name}] Failed to fetch existing objects: {e}")
+        return []
+
+    existing_by_key = {make_key_from_existing(obj): obj for obj in existing_objects}
     created_or_found_objects = []
+
     for raw_item in items:
         try:
             validated_payload = model_class.model_validate(raw_item)
@@ -110,19 +128,15 @@ def sync_resources(
             logger.error(f"Validation failed for item {raw_item}: {err}")
             continue
 
-        fields = [lookup_field] if isinstance(lookup_field, str) else lookup_field
-        lookup_kwargs = {}
-        for f in fields:
-            attr_name, param_name = f if isinstance(f, tuple) else (f, f)
-            lookup_kwargs[param_name] = getattr(validated_payload, attr_name)
+        key = make_key_from_payload(validated_payload)
+        existing_obj = existing_by_key.get(key)
 
         try:
-            obj = sync_object(
-                endpoint=endpoint,
-                lookup_kwargs=lookup_kwargs,
-                payload=validated_payload,
-            )
+            obj = sync_object(endpoint, existing_obj, validated_payload)
             created_or_found_objects.append(obj)
+
+            # Update cache so duplicate items in the same batch target this object
+            existing_by_key[key] = obj
         except RequestError as err:
             logger.error(f"Sync failed for item {raw_item}: {err}")
             continue
