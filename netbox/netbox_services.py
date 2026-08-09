@@ -59,13 +59,12 @@ def load_device_data(file_path: Union[str, Path]):
         raise ValueError(f"Error parsing CSV file '{path.name}': {e}") from e
 
 
-def resolve_object_id(endpoint: Endpoint, **kwargs) -> int:
-    obj = endpoint.get(**kwargs)
-    if obj is None:
-        raise ValueError(
-            f"Could not find object in '{endpoint.name}' matching criteria: {kwargs}"
-        )
-    return obj.id
+def build_slug_cache(endpoint: Endpoint) -> Dict[str, int]:
+    return {obj.slug: obj.id for obj in endpoint.all()}
+
+
+def build_name_cache(endpoint: Endpoint) -> Dict[str, int]:
+    return {obj.name: obj.id for obj in endpoint.all()}
 
 
 def sync_object(endpoint: Endpoint, existing_obj, payload: BaseModel):
@@ -80,11 +79,13 @@ def sync_object(endpoint: Endpoint, existing_obj, payload: BaseModel):
                     f"[{endpoint.name}] Object ID {existing_obj.id} is already up-to-date."
                 )
             return existing_obj
+
         created_obj = endpoint.create(payload_dict)
         logger.info(
             f"[{endpoint.name}] Successfully created object ID {created_obj.id}."
         )
         return created_obj
+
     except RequestError as e:
         logger.error(f"[{endpoint.name}] NetBox API request failed. Error: {e}")
         raise
@@ -108,8 +109,13 @@ def sync_resources(
     def make_key_from_existing(obj) -> tuple:
         key_parts = []
         for f in fields:
-            _, param_name = f if isinstance(f, tuple) else (f, f)
-            key_parts.append(getattr(obj, param_name, None))
+            attr_name, param_name = f if isinstance(f, tuple) else (f, f)
+            if param_name.endswith("_id"):
+                nested_attr = param_name[: -len("_id")]
+                nested_obj = getattr(obj, nested_attr, None)
+                key_parts.append(getattr(nested_obj, "id", None))
+            else:
+                key_parts.append(getattr(obj, param_name, None))
         return tuple(key_parts)
 
     try:
@@ -117,7 +123,9 @@ def sync_resources(
     except RequestError as e:
         logger.error(f"[{endpoint.name}] Failed to fetch existing objects: {e}")
         return []
+
     existing_by_key = {make_key_from_existing(obj): obj for obj in existing_objects}
+
     created_or_found_objects = []
     for raw_item in items:
         try:
@@ -125,34 +133,33 @@ def sync_resources(
         except ValidationError as err:
             logger.error(f"Validation failed for item {raw_item}: {err}")
             continue
+
         key = make_key_from_payload(validated_payload)
         existing_obj = existing_by_key.get(key)
+
         try:
             obj = sync_object(endpoint, existing_obj, validated_payload)
             created_or_found_objects.append(obj)
-            existing_by_key[key] = obj
         except RequestError as err:
             logger.error(f"Sync failed for item {raw_item}: {err}")
             continue
+
     return created_or_found_objects
 
 
 def sync_cable(nb, cables_data: List[Dict[str, Any]]) -> None:
+    try:
+        interfaces_cache = {
+            (i.device.name, i.name): i for i in nb.dcim.interfaces.all()
+        }
+    except RequestError as e:
+        logger.error(f"Failed to fetch interfaces for cable sync: {e}")
+        return
     for cable in cables_data:
         a_side = cable.get("a_side", {})
         b_side = cable.get("b_side", {})
-        try:
-            dev_a_id = resolve_object_id(nb.dcim.devices, name=a_side.get("device"))
-            iface_a = nb.dcim.interfaces.get(
-                device_id=dev_a_id, name=a_side.get("interface")
-            )
-            dev_b_id = resolve_object_id(nb.dcim.devices, name=b_side.get("device"))
-            iface_b = nb.dcim.interfaces.get(
-                device_id=dev_b_id, name=b_side.get("interface")
-            )
-        except Exception as err:
-            logger.error(f"Error resolving endpoints for cable {cable}: {err}")
-            continue
+        iface_a = interfaces_cache.get((a_side.get("device"), a_side.get("interface")))
+        iface_b = interfaces_cache.get((b_side.get("device"), b_side.get("interface")))
         if not iface_a or not iface_b:
             logger.error(f"interface not found for entry: {cable}")
             continue
@@ -176,11 +183,3 @@ def sync_cable(nb, cables_data: List[Dict[str, Any]]) -> None:
             logger.info(f"Successfully created cable ID {new_cable.id}")
         except RequestError as err:
             logger.error(f"Failed to create cable for {cable}: {err}")
-
-
-def build_slug_cache(endpoint) -> dict:
-    return {obj.slug: obj.id for obj in endpoint.all()}
-
-
-def build_name_cache(endpoint) -> dict:
-    return {obj.name: obj.id for obj in endpoint.all()}
