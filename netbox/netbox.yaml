@@ -150,29 +150,29 @@ interfaces:
     type: "1000base-t"  
 
 ip_addresses:
-  # aoscx1
+  # vios1
   - address: "172.20.20.2/24"
     status: "active"
-    device_name: "aoscx1"
+    device_name: "vios1"
     interface_name: "eth0"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::2/64"
     status: "active"
-    device_name: "aoscx1"
+    device_name: "vios1"
     interface_name: "eth0"
     is_primary_ip6: true
 
-  # vios1
+  # aoscx1
   - address: "172.20.20.3/24"
     status: "active"
-    device_name: "vios1"
+    device_name: "aoscx1"
     interface_name: "eth0"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::3/64"
     status: "active"
-    device_name: "vios1"
+    device_name: "aoscx1"
     interface_name: "eth0"
     is_primary_ip6: true
 
