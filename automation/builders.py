@@ -1,10 +1,8 @@
-from schemas import InterfaceConfig
+from schemas import InterfaceConfig, VlanConfig
 
 
 def build_interface_config(nb, device) -> list[InterfaceConfig]:
     netbox_interfaces = list(nb.dcim.interfaces.filter(device_id=device.id))
-
-    # single call for ALL ip addresses on this device
     all_ips = nb.ipam.ip_addresses.filter(device_id=device.id)
 
     ips_by_interface = {}
@@ -25,3 +23,21 @@ def build_interface_config(nb, device) -> list[InterfaceConfig]:
         )
 
     return interfaces
+
+
+from schemas import VlanConfig
+
+
+def build_vlan_config(nb) -> list[VlanConfig]:
+    netbox_vlans = list(nb.ipam.vlans.all())
+    vlans = []
+    for vlan in netbox_vlans:
+        vlans.append(
+            VlanConfig(
+                vlan_id=vlan.vid,
+                name=vlan.name or None,
+                enabled=vlan.status == "active",
+            )
+        )
+
+    return vlans
