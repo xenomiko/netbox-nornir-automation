@@ -117,30 +117,23 @@ def sync_resources(
     except RequestError as e:
         logger.error(f"[{endpoint.name}] Failed to fetch existing objects: {e}")
         return []
-
     existing_by_key = {make_key_from_existing(obj): obj for obj in existing_objects}
     created_or_found_objects = []
-
     for raw_item in items:
         try:
             validated_payload = model_class.model_validate(raw_item)
         except ValidationError as err:
             logger.error(f"Validation failed for item {raw_item}: {err}")
             continue
-
         key = make_key_from_payload(validated_payload)
         existing_obj = existing_by_key.get(key)
-
         try:
             obj = sync_object(endpoint, existing_obj, validated_payload)
             created_or_found_objects.append(obj)
-
-            # Update cache so duplicate items in the same batch target this object
             existing_by_key[key] = obj
         except RequestError as err:
             logger.error(f"Sync failed for item {raw_item}: {err}")
             continue
-
     return created_or_found_objects
 
 
@@ -183,3 +176,11 @@ def sync_cable(nb, cables_data: List[Dict[str, Any]]) -> None:
             logger.info(f"Successfully created cable ID {new_cable.id}")
         except RequestError as err:
             logger.error(f"Failed to create cable for {cable}: {err}")
+
+
+def build_slug_cache(endpoint) -> dict:
+    return {obj.slug: obj.id for obj in endpoint.all()}
+
+
+def build_name_cache(endpoint) -> dict:
+    return {obj.name: obj.id for obj in endpoint.all()}
