@@ -263,3 +263,17 @@ cables:
     b_side:
       device: "aoscx1"
       interface: "eth2"
+
+
+vlans:
+  - vid: 10
+    name: USERS
+    status: active
+
+  - vid: 20
+    name: SERVERS
+    status: active
+
+  - vid: 30
+    name: MANAGEMENT
+    status: active

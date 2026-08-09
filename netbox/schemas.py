@@ -111,3 +111,13 @@ class PlatformCreate(NetBoxBaseSchema):
     napalm_driver: Optional[str] = Field(default=None, min_length=1)
     napalm_args: Optional[dict[str, Any]] = None
     description: Optional[str] = None
+
+
+class VlanCreate(NetBoxBaseSchema):
+    vid: int = Field(ge=1, le=4094)
+    name: str = Field(min_length=1)
+    status: Literal[
+        "active",
+        "reserved",
+        "deprecated",
+    ] = "active"

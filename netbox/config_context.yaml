@@ -1,0 +1,34 @@
+config_contexts:
+  - name: "global-ntp-dns"
+    weight: 100
+    description: "NTP and DNS servers for all devices"
+    data:
+      ntp_servers:
+        - 10.0.0.1
+        - 10.0.0.2
+      dns_servers:
+        - 10.0.0.53
+
+  - name: "core-routers-common"
+    weight: 200
+    description: "Common settings for core role devices"
+    roles:
+      - core-router
+    data:
+      snmp:
+        community: "public-ro"
+        location: "{{ site }}"
+      syslog_servers:
+        - 10.0.0.10
+      aaa:
+        tacacs_servers:
+          - 10.0.0.20
+
+  - name: "site-a-specific"
+    weight: 300
+    description: "Overrides specific to Site A"
+    sites:
+      - site-a
+    data:
+      ntp_servers:
+        - 10.1.0.1

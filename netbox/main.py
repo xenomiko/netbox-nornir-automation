@@ -19,6 +19,7 @@ from schemas import (
     PlatformCreate,
     RoleCreate,
     SiteCreate,
+    VlanCreate,
 )
 
 logging.basicConfig(
@@ -160,6 +161,14 @@ def main():
 
     cables_data = data.get("cables", [])
     sync_cable(nb, cables_data)
+
+    vlans_data = data.get("vlans", [])
+    sync_resources(
+        nb.ipam.vlans,
+        vlans_data,
+        VlanCreate,
+        lookup_field="vid",
+    )
 
 
 if __name__ == "__main__":
