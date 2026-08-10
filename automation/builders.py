@@ -1,4 +1,4 @@
-from schemas import (
+from nornir_schemas import (
     InterfaceConfig,
     VlanConfig,
     NtpConfig,
@@ -37,9 +37,6 @@ def build_interface_config(nb, device) -> list[InterfaceConfig]:
         )
 
     return interfaces
-
-
-from schemas import VlanConfig
 
 
 def build_vlan_config(nb) -> list[VlanConfig]:
