@@ -9,7 +9,7 @@ from netbox_services import (
     build_name_cache,
     build_slug_cache,
 )
-from schemas import (
+from netbox.netbox_schemas import (
     ConfigContextCreate,
     DeviceTypeCreate,
     InterfaceCreate,
