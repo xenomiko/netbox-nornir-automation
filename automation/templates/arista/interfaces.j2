@@ -1,0 +1,15 @@
+{% for interface in interfaces -%}
+interface {{ interface.name }}
+{% if interface.description -%}
+   description {{ interface.description }}
+{% endif -%}
+{% if interface.ip_address -%}
+   ip address {{ interface.ip_address }}
+{% endif -%}
+{% if interface.enabled -%}
+   no shutdown
+{% else -%}
+   shutdown
+{% endif -%}
+!
+{% endfor -%}
