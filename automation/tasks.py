@@ -2,7 +2,7 @@ import logging
 from nornir.core.task import Task, Result
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from pynetbox import RequestError
-from builders import build_device_config
+from .builders import build_device_config
 
 logger = logging.getLogger(__name__)
 

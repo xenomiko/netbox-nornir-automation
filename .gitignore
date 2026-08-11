@@ -1,0 +1,61 @@
+# =========================
+# Python
+# =========================
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# Environment / secrets
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# IDE / editors
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# OS files
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+
+*.log
+
+# =========================
+# NetBox Docker
+# =========================
+
+# Local NetBox Docker environment/secrets
+netbox/netbox-docker/.env
+
+# Persistent/local Docker data
+netbox/netbox-docker/redis/
+netbox/netbox-docker/postgres/
+netbox/netbox-docker/media/
+netbox/netbox-docker/reports/
+# Local NetBox Docker instance
+netbox/netbox-docker/

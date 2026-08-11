@@ -1,7 +1,7 @@
 # main.py
 import logging
 from dotenv import load_dotenv
-from netbox_services import (
+from .netbox_services import (
     get_netbox_client,
     load_device_data,
     sync_cable,
@@ -9,7 +9,7 @@ from netbox_services import (
     build_name_cache,
     build_slug_cache,
 )
-from netbox.netbox_schemas import (
+from .netbox_schemas import (
     ConfigContextCreate,
     DeviceTypeCreate,
     InterfaceCreate,

@@ -1,4 +1,4 @@
-from nornir_schemas import (
+from .nornir_schemas import (
     InterfaceConfig,
     VlanConfig,
     NtpConfig,
