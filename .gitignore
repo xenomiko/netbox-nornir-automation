@@ -59,3 +59,11 @@ netbox/netbox-docker/media/
 netbox/netbox-docker/reports/
 # Local NetBox Docker instance
 netbox/netbox-docker/
+
+# Containerlab generated files
+*.clab.yml
+*.clab.yaml
+clab-*
+
+# Keep the lab topology
+!topology.clab.yaml
