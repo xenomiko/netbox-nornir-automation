@@ -21,6 +21,7 @@ from .netbox_schemas import (
     SiteCreate,
     VlanCreate,
 )
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -30,7 +31,7 @@ logging.basicConfig(
 def main():
     load_dotenv()
     nb = get_netbox_client()
-    data = load_device_data("netbox.yaml")
+    data = load_device_data(Path(__file__).parent / "netbox.yaml")
 
     sync_resources(nb.dcim.sites, data.get("sites", []), SiteCreate)
     sync_resources(
