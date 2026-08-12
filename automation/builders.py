@@ -54,6 +54,14 @@ def build_vlan_config(nb) -> list[VlanConfig]:
     return vlans
 
 
+def intended_vlans_dict(nb) -> dict[int, str]:
+    vlans = build_vlan_config(nb)
+    result = {}
+    for vlan in vlans:
+        result[vlan.vlan_id] = vlan.name
+    return result
+
+
 def build_from_context(model_class, config_context: dict, key: str):
     section = config_context.get(key)
     if not section:
