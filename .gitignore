@@ -67,3 +67,7 @@ clab-*
 
 # Keep the lab topology
 !topology.clab.yaml
+__init__.py
+topology.clab.yaml.annotations.json
+automation/__init__.py
+automation/__init__.py
