@@ -5,18 +5,23 @@ topology:
     ceos1:
       kind: arista_ceos
       image: ceos:4.36.0F
+      mgmt-ipv4: 172.20.20.6
     ceos2:
       kind: arista_ceos
       image: ceos:4.36.0F
+      mgmt-ipv4: 172.20.20.4
     ceos3:
       kind: arista_ceos
       image: ceos:4.36.0F
+      mgmt-ipv4: 172.20.20.5
     vios1:
       kind: cisco_vios
       image: vrnetlab/cisco_vios:159-3.M6
+      mgmt-ipv4: 172.20.20.2
     aoscx1:
       kind: aruba_aoscx
       image: vrnetlab/aruba_arubaos-cx:10.14.1000
+      mgmt-ipv4: 172.20.20.3
 
   links:
     - endpoints: ["ceos1:eth1", "ceos2:eth1"]
