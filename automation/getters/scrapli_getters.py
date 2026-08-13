@@ -14,26 +14,40 @@ SCRAPLI_PLATFORM_MAP = {
 
 COMMANDS = {
     "eos": {
+        "hostname": "show running-config | section ^hostname",
         "interfaces": "show running-config | section ^interface",
         "vlans": "show running-config | section ^vlan",
         "bgp": "show running-config | section ^router bgp",
         "ospf": "show running-config | section ^router ospf",
-        "static_routes": "show running-config | include ^ip route",
+        "static_routes": "show running-config | section ^ip route",
+        "management": "show running-config | section ^management",
+        "ntp": "show running-config | section ^ntp",
+        "snmp": "show running-config | section ^snmp",
+        "security": "show running-config | section ^aaa|^username|^banner",
     },
     "ios": {
+        "hostname": "show running-config | section hostname",
         "interfaces": "show running-config | section interface",
         "vlans": "show running-config | section vlan",
         "bgp": "show running-config | section router bgp",
         "ospf": "show running-config | section router ospf",
-        "static_routes": "show running-config | include ^ip route",
+        "static_routes": "show running-config | section ip route",
+        "management": "show running-config | section line",
+        "ntp": "show running-config | section ntp",
+        "snmp": "show running-config | section snmp-server",
+        "security": "show running-config | section aaa|username|banner",
     },
     "aoscx": {
-        "interfaces": "show running-config interface",
+        "hostname": "show running-config | include hostname",
+        "interfaces": "show running-config | include interface",
         "vlans": "show running-config | include vlan",
-        "bgp": "show running-config bgp",
-        "ospf": "show running-config ospf",
-        "static_routes": "show running-config | include ip route",
+        "bgp": "show running-config | include bgp",
+        "ospf": "show running-config | include ospf",
+        "static_routes": "show running-config | include route",
+        "management": "show running-config | include ssh",
         "ntp": "show running-config | include ntp",
+        "snmp": "show running-config | include snmp-server",
+        "security": "show running-config | include user",
     },
 }
 
@@ -91,6 +105,10 @@ def scrapli_getter(task: Task, section: str) -> Result:
         )
 
 
+def get_hostname(task: Task) -> Result:
+    return scrapli_getter(task, "hostname")
+
+
 def get_interfaces(task: Task) -> Result:
     return scrapli_getter(task, "interfaces")
 
@@ -109,3 +127,19 @@ def get_ospf(task: Task) -> Result:
 
 def get_static_routes(task: Task) -> Result:
     return scrapli_getter(task, "static_routes")
+
+
+def get_management(task: Task) -> Result:
+    return scrapli_getter(task, "management")
+
+
+def get_ntp(task: Task) -> Result:
+    return scrapli_getter(task, "ntp")
+
+
+def get_snmp(task: Task) -> Result:
+    return scrapli_getter(task, "snmp")
+
+
+def get_security(task: Task) -> Result:
+    return scrapli_getter(task, "security")
