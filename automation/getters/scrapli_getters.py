@@ -68,43 +68,17 @@ def scrapli_getter(task: Task, section: str) -> Result:
         return Result(host=task.host, failed=True, result=msg)
 
     try:
-        # 1. Safely retrieve or create Scrapli ConnectionOptions
         if "scrapli" not in task.host.connection_options:
             task.host.connection_options["scrapli"] = ConnectionOptions(
-                platform=scrapli_platform,
-                extras={},
+                platform=scrapli_platform
             )
+        else:
+            task.host.connection_options["scrapli"].platform = scrapli_platform
 
-        scrapli_opts = task.host.connection_options["scrapli"]
-        scrapli_opts.platform = scrapli_platform
-
-        if scrapli_opts.extras is None:
-            scrapli_opts.extras = {}
-
-        # 2. Force Paramiko transport (for legacy Cisco KEX) & enable password
-        scrapli_opts.extras.update(
-            {
-                "transport": "paramiko",
-                "auth_strict_key": False,
-                "ssh_config_file": False,
-                "auth_secondary": task.host.password,
-            }
-        )
-
-        # 3. Execute command
         result = task.run(
             task=send_command,
             command=command,
         )
-
-        if result[0].failed:
-            err_msg = str(result[0].result)
-            logger.error(f"[{task.host.name}] Command failed for {section}: {err_msg}")
-            return Result(
-                host=task.host,
-                failed=True,
-                result=err_msg,
-            )
 
         output = result[0].result
         logger.info(f"[{task.host.name}] Retrieved {section} configuration.")
@@ -185,7 +159,7 @@ GETTERS = {
 }
 
 
-def get_running_confg(task: Task, sections: list[str]) -> dict[str, str]:
+def get_running_config(task: Task, sections: list[str]) -> dict[str, str]:
     running_config = {}
     for section in sections:
         getter = GETTERS.get(section)
