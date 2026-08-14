@@ -1,12 +1,12 @@
 import os
-from nornir import InitNornir
 from dotenv import load_dotenv
+from nornir import InitNornir
 
 load_dotenv()
 
 
 def get_nornir():
-    return InitNornir(
+    nr = InitNornir(
         runner={
             "plugin": "threaded",
             "options": {"num_workers": 10},
@@ -21,3 +21,15 @@ def get_nornir():
             },
         },
     )
+
+    for host in nr.inventory.hosts.values():
+        primary_ip4 = host.data.get("primary_ip4")
+        if primary_ip4:
+            if isinstance(primary_ip4, dict):
+                raw_address = primary_ip4.get("address", "")
+            else:
+                raw_address = str(primary_ip4)
+            if raw_address:
+                host.hostname = raw_address.split("/")[0]
+
+    return nr
