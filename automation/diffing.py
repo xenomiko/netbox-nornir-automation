@@ -32,3 +32,29 @@ def reshape_running_vlans(napalm_vlans: dict) -> dict[int, str]:
             continue
         running[vid] = data["name"]
     return running
+
+
+def reshape_running_interfaces(napalm_interfaces: dict) -> ...:
+    running = {}
+    for interface_name, data in napalm_interfaces.items():
+        running[interface_name] = {
+            "description": data["description"],
+            "enabled": data["is_enableed"],
+        }
+    return running
+
+
+def reshape_running_interfaces_ip(napalm_interfaces_ip: dict):
+    running = {}
+
+    for interface_name, data in napalm_interfaces_ip.items():
+        addresses = []
+        for ip, info in data.get("ipv4", {}).items():
+            addresses.append(f"{ip}/{info['prefix_length']}")
+
+        for ip, info in data.get("ipv6", {}).items():
+            addresses.append(f"{ip}/{info['prefix_length']}")
+
+        running[interface_name] = addresses
+
+    return running

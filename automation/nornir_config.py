@@ -17,6 +17,7 @@ def get_nornir():
                 "nb_url": os.getenv("NB_URL"),
                 "nb_token": os.getenv("NB_TOKEN"),
                 "ssl_verify": True,
+                "use_platform_slug": True,
             },
         },
     )

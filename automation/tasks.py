@@ -6,6 +6,7 @@ from .builders import build_device_config
 from .diffing import normalize_config, reshape_running_vlans
 import difflib
 from nornir_napalm.plugins.tasks import napalm_get, napalm_configure
+from .getters.napalm_getters import get_vlans as napalm_get_vlans
 
 logger = logging.getLogger(__name__)
 
@@ -62,23 +63,6 @@ def diff_texts(running: str, intended: str) -> list[str]:
         )
     )
     return diff
-
-
-def get_running_vlans(task: Task) -> Result:
-    result = task.run(task=napalm_get, getters=["vlans"])
-    napalm_vlans = result[0].result["vlans"]
-    running = reshape_running_vlans(napalm_vlans)
-    return Result(host=task.host, result=running)
-
-
-def push_vlan_config(task: Task, config_text: str, dry_run: bool = True) -> Result:
-    result = task.run(
-        task=napalm_configure,
-        configuration=config_text,
-        replace=False,
-        dry_run=dry_run,
-    )
-    return result
 
 
 def get_running_vlans(task: Task) -> Result:
