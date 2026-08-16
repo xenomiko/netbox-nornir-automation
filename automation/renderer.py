@@ -47,11 +47,20 @@ def render_section(section, device_config: DeviceConfig, platform) -> str:
         )
         logger.error(msg)
         raise
-
     logger.info(
         "Rendered section '%s' for platform '%s'.",
         section,
         platform,
     )
-
     return rendered
+
+
+def render_sections(platform, device_config: DeviceConfig) -> dict[str, str]:
+    rendered_sections = {}
+    for section in CONFIG_SECTIONS:
+        section_config = getattr(device_config, section, None)
+        if section_config is None or section_config == "":
+            continue
+        rendered_section = render_section(section, device_config, platform)
+        rendered_sections[section] = rendered_section
+    return rendered_sections
