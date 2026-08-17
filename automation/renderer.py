@@ -25,6 +25,7 @@ CONFIG_SECTIONS = [
     "bgp",
     "management",
     "security",
+    "static_routes",
 ]
 
 
