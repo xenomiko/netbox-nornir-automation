@@ -6,7 +6,6 @@ from .builders import build_device_config
 from .diffing import normalize_config, reshape_running_vlans
 import difflib
 from nornir_napalm.plugins.tasks import napalm_get, napalm_configure
-from .getters.napalm_getters import get_vlans as napalm_get_vlans
 
 logger = logging.getLogger(__name__)
 

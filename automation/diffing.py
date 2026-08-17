@@ -85,3 +85,16 @@ def load_exceptions(file_path: str) -> dict[str, set[str]]:
                 f"got {type(lines).__name__}"
             )
     return exceptions
+
+
+def filter_unmanaged(
+    unmanaged_lines: list[str], exceptions: dict[str, set[str]], section: str
+) -> list[str]:
+    if not unmanaged_lines:
+        return []
+    exempted_lines = exceptions.get(section, set())
+    filtered_result = []
+    for line in unmanaged_lines:
+        if line not in exempted_lines:
+            filtered_result.append(line)
+    return filtered_result
