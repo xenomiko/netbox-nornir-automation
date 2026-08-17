@@ -98,3 +98,35 @@ def filter_unmanaged(
         if line not in exempted_lines:
             filtered_result.append(line)
     return filtered_result
+
+
+def diff_config(
+    intended_sections: dict[str, str],
+    running_sections: dict[str, str],
+    exceptions: dict[str, set[str]],
+) -> dict[str, dict[str, list[str]]]:
+    diff_results = {}
+    all_sections = intended_sections.keys() | running_sections.keys()
+    for section in all_sections:
+        intended = intended_sections.get(section)
+        running = running_sections.get(section)
+        if intended is not None and running is not None:
+            section_diff = diff_section(intended, running)
+            missing = section_diff["missing"]
+            unmanaged = section_diff["unmanaged"]
+        elif intended is not None and running is None:
+            missing = normalize_config(intended)
+            unmanaged = []
+        elif intended is None and running is not None:
+            missing = []
+            unmanaged = normalize_config(running)
+        unmanaged = filter_unmanaged(
+            unmanaged,
+            exceptions,
+            section,
+        )
+        diff_results[section] = {
+            "missing": missing,
+            "unmanaged": unmanaged,
+        }
+    return diff_results
