@@ -1,8 +1,5 @@
 from pathlib import Path
-import logging
 import yaml
-
-logger = logging.getLogger(__name__)
 
 
 def normalize_config(config_text: str) -> list[str]:
