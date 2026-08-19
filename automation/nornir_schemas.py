@@ -7,7 +7,7 @@ class InterfaceConfig(BaseModel):
     description: Optional[str] = None
     enabled: bool = True
     mgmt_only: bool = False
-    ip_address: Optional[str] = None
+    ip_addresses: list[str] = Field(default_factory=list)
 
 
 class VlanConfig(BaseModel):
