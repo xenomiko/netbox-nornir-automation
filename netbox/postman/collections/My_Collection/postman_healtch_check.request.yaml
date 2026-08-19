@@ -1,9 +1,9 @@
 $kind: http-request
-url: http://localhost:8000/api/dcim/sites/
+url: "your url"
 method: GET
 auth:
   type: bearer
   credentials:
-    token: nbt_GRK7qZfSFNn4.OQM6eex5c2a8ZmEsbr8nsRtcFOrpkBHJ4YIFKMzd
+    token:  "your_token"
 settings: {}
 order: 1000
