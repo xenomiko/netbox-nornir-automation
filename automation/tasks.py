@@ -86,7 +86,6 @@ def remediate_task(
 ) -> Result:
     host_name = task.host.name
     file_p = Path(report_path)
-
     if not file_p.is_file():
         msg = f"Report file not found: {report_path}"
         return Result(
@@ -160,8 +159,7 @@ def remediate_task(
             push_res = sender.push_config(
                 task=task,
                 section=section,
-                missing_lines=missing_lines,
-                intended_text=intended_text,
+                config_text=intended_text,  # Pushing full section block
                 dry_run=dry_run,
             )
             pushed_sections[section] = {
@@ -181,7 +179,7 @@ def remediate_task(
         "timestamp": time.time(),
         "applied_sections": pushed_sections,
     }
-    audit_log_path = REPORT_DIR / (f"remediation_{expected_run_id}_{host_name}.json")
+    audit_log_path = REPORT_DIR / f"remediation_{expected_run_id}_{host_name}.json"
     atomic_json_writer(
         audit_log_path,
         remediation_summary,
