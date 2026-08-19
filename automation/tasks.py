@@ -162,7 +162,7 @@ def remediate_task(
             push_res = sender.push_config(
                 task=task,
                 section=section,
-                config_text=intended_text,  # Pushing full section block
+                config_text=intended_text,
                 dry_run=dry_run,
             )
             pushed_sections[section] = {
@@ -174,6 +174,24 @@ def remediate_task(
                 "success": False,
                 "error": str(e),
             }
+    if not dry_run:
+        has_any_success = any(
+            section_result.get("success", False)
+            for section_result in pushed_sections.values()
+        )
+        if has_any_success:
+            try:
+                save_res = sender.save_config(task)
+                pushed_sections["_save_config"] = {
+                    "success": not save_res.failed,
+                    "output": str(save_res.result),
+                }
+            except Exception as e:
+                pushed_sections["_save_config"] = {
+                    "success": False,
+                    "error": str(e),
+                }
+
     remediation_summary = {
         "run_id": expected_run_id,
         "host": host_name,
@@ -183,7 +201,9 @@ def remediate_task(
         "applied_sections": pushed_sections,
     }
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    audit_log_path = REPORT_DIR / f"remediation_{host_name}_{timestamp_str}_{expected_run_id}.json"
+    audit_log_path = (
+        REPORT_DIR / f"remediation_{host_name}_{timestamp_str}_{expected_run_id}.json"
+    )
     atomic_json_writer(
         audit_log_path,
         remediation_summary,

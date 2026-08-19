@@ -1,7 +1,7 @@
 import logging
 from nornir.core.task import Task, Result
 from nornir.core.exceptions import NornirSubTaskError
-from nornir_scrapli.tasks import send_configs
+from nornir_scrapli.tasks import send_configs, send_command
 from scrapli.exceptions import ScrapliException
 
 logger = logging.getLogger(__name__)
@@ -87,3 +87,44 @@ def push_config(
         diff=output,
         changed=not result[0].failed,
     )
+
+
+def save_config(task: Task) -> Result:
+    platform = task.host.platform
+    if platform == "ios":
+        cmd = "write memory"
+    elif platform == "aoscx":
+        cmd = "write memory"
+    else:
+        msg = f"No save command defined for platform '{platform}'"
+        logger.warning(f"[{task.host.name}] {msg}")
+        return Result(host=task.host, failed=False, result=msg)
+
+    try:
+        result = task.run(task=send_command, command=cmd)
+        output = result[0].result
+        logger.info(
+            "[%s] Configuration saved to startup config. Output: %s",
+            task.host.name,
+            output,
+        )
+        return Result(host=task.host, failed=False, result=output)
+    except NornirSubTaskError as e:
+        task.host.close_connections()
+        sub_result = e.result
+        detail = str(
+            getattr(sub_result, "result", getattr(sub_result, "exception", ""))
+        )
+        msg = f"Failed to save configuration: {detail}"
+        logger.error(f"[{task.host.name}] {msg}")
+        return Result(host=task.host, failed=True, result=msg)
+    except ScrapliException as e:
+        task.host.close_connections()
+        msg = f"Scrapli error saving configuration: {e}"
+        logger.error(f"[{task.host.name}] {msg}")
+        return Result(host=task.host, failed=True, result=msg)
+    except Exception as e:
+        task.host.close_connections()
+        msg = f"Failed to save configuration: {type(e).__name__}: {e}"
+        logger.error(f"[{task.host.name}] {msg}")
+        return Result(host=task.host, failed=True, result=msg)

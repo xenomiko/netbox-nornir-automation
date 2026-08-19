@@ -1,5 +1,5 @@
 import logging
-from nornir_napalm.plugins.tasks import napalm_configure
+from nornir_napalm.plugins.tasks import napalm_configure, napalm_cli
 from nornir.core.task import Task, Result
 
 logger = logging.getLogger(__name__)
@@ -42,3 +42,22 @@ def push_config(
         diff=diff,
         changed=bool(result[0].diff),
     )
+
+
+def save_config(task: Task) -> Result:
+    try:
+        result = task.run(
+            task=napalm_cli,
+            commands=["write memory"],
+        )
+        output = result[0].result
+        logger.info(
+            "[%s] Configuration saved to startup config. Output: %s",
+            task.host.name,
+            output,
+        )
+        return Result(host=task.host, failed=False, result=output)
+    except Exception as e:
+        msg = f"NAPALM save failed: {e}"
+        logger.error(f"[{task.host.name}] {msg}")
+        return Result(host=task.host, failed=True, result=msg)
