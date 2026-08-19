@@ -1,0 +1,8 @@
+{% if security -%}
+{% if security.ssh_enabled -%}
+ssh server vrf default
+{% endif -%}
+{% if not security.telnet_enabled -%}
+no telnet-server
+{% endif -%}
+{% endif -%}

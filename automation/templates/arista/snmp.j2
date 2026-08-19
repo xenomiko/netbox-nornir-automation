@@ -1,0 +1,8 @@
+{% if snmp and snmp.enabled -%}
+{% for community in snmp.communities -%}
+snmp-server community {{ community }} ro
+{% endfor -%}
+{% for server in snmp.servers -%}
+snmp-server host {{ server }}
+{% endfor -%}
+{% endif -%}

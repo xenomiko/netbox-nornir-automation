@@ -1,0 +1,15 @@
+{% for interface in interfaces -%}
+interface {{ interface.name }}
+{% if interface.description -%}
+   description {{ interface.description }}
+{% endif -%}
+{% for ip in interface.ip_addresses -%}
+   ip address {{ ip | cidr_to_netmask }}
+{% endfor -%}
+{% if interface.enabled -%}
+   no shutdown
+{% else -%}
+   shutdown
+{% endif -%}
+!
+{% endfor -%}

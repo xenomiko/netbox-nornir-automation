@@ -1,0 +1,16 @@
+{% if security -%}
+line vty 0 4
+{% if security.ssh_enabled and not security.telnet_enabled -%}
+ transport input ssh
+{% elif security.ssh_enabled and security.telnet_enabled -%}
+ transport input ssh telnet
+{% elif security.telnet_enabled -%}
+ transport input telnet
+{% else -%}
+ transport input none
+{% endif -%}
+!
+{% if security.password_encryption -%}
+service password-encryption
+{% endif -%}
+{% endif -%}

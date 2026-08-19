@@ -1,0 +1,14 @@
+{% if security -%}
+{% if security.ssh_enabled -%}
+management ssh
+   no shutdown
+{% endif -%}
+{% if not security.telnet_enabled -%}
+management telnet
+   shutdown
+{% endif -%}
+{% if security.password_encryption -%}
+service password-encryption
+{% endif -%}
+!
+{% endif -%}
