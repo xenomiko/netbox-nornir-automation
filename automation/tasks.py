@@ -77,3 +77,129 @@ def audit_task(task: Task, nb: Any, run_id: str = None) -> Result:
     )
 
 
+def remediate_task(
+    task: Task,
+    report_path: str,
+    expected_run_id: str,
+    target_sections: Optional[List[str]] = None,
+    dry_run: bool = True,
+) -> Result:
+    host_name = task.host.name
+    file_p = Path(report_path)
+
+    if not file_p.is_file():
+        msg = f"Report file not found: {report_path}"
+        return Result(
+            host=task.host,
+            failed=True,
+            result=msg,
+        )
+    try:
+        with file_p.open("r", encoding="utf-8") as f:
+            report_data = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        msg = f"Invalid audit report '{report_path}': {e}"
+        return Result(
+            host=task.host,
+            failed=True,
+            result=msg,
+        )
+    if report_data.get("host") != host_name:
+        msg = (
+            f"Host mismatch! "
+            f"File host: {report_data.get('host')}, "
+            f"Target host: {host_name}"
+        )
+        return Result(
+            host=task.host,
+            failed=True,
+            result=msg,
+        )
+    if report_data.get("run_id") != expected_run_id:
+        msg = (
+            f"Stale report! "
+            f"File run_id: {report_data.get('run_id')}, "
+            f"Expected: {expected_run_id}"
+        )
+        return Result(
+            host=task.host,
+            failed=True,
+            result=msg,
+        )
+    if "diffs" not in report_data or "rendered_intended" not in report_data:
+        msg = "Invalid audit report: required fields are missing."
+        return Result(
+            host=task.host,
+            failed=True,
+            result=msg,
+        )
+    platform = task.host.platform
+    if platform == "aoscx":
+        from .senders import scrapli_senders as sender
+    elif platform in ("eos", "ios"):
+        from .senders import napalm_senders as sender
+    else:
+        msg = f"Unsupported platform for remediation: {platform}"
+        return Result(
+            host=task.host,
+            failed=True,
+            result=msg,
+        )
+    sections_to_process = (
+        target_sections
+        if target_sections is not None
+        else list(report_data["diffs"].keys())
+    )
+    pushed_sections: Dict[str, Any] = {}
+    for section in sections_to_process:
+        missing_lines = report_data["diffs"].get(section, {}).get("missing", [])
+        intended_text = report_data["rendered_intended"].get(section, "")
+        if not missing_lines and not intended_text:
+            continue
+        try:
+            push_res = sender.push_config(
+                task=task,
+                section=section,
+                missing_lines=missing_lines,
+                intended_text=intended_text,
+                dry_run=dry_run,
+            )
+            pushed_sections[section] = {
+                "success": not push_res.failed,
+                "output": push_res.result,
+            }
+        except Exception as e:
+            pushed_sections[section] = {
+                "success": False,
+                "error": str(e),
+            }
+    remediation_summary = {
+        "run_id": expected_run_id,
+        "host": host_name,
+        "platform": platform,
+        "dry_run": dry_run,
+        "timestamp": time.time(),
+        "applied_sections": pushed_sections,
+    }
+    audit_log_path = REPORT_DIR / (f"remediation_{expected_run_id}_{host_name}.json")
+    atomic_json_writer(
+        audit_log_path,
+        remediation_summary,
+    )
+    has_failures = any(
+        not section_result.get("success", False)
+        for section_result in pushed_sections.values()
+    )
+    return Result(
+        host=task.host,
+        failed=has_failures,
+        result={
+            "summary": (
+                f"Remediation executed "
+                f"(dry_run={dry_run}). "
+                f"Log written to {audit_log_path}"
+            ),
+            "audit_trail": str(audit_log_path),
+            "details": pushed_sections,
+        },
+    )
