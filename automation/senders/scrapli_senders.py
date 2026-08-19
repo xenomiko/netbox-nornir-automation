@@ -11,7 +11,7 @@ def _split_config_lines(config_text: str) -> list[str]:
     lines = []
     for raw_line in config_text.splitlines():
         line = raw_line.rstrip()
-        if not line or line == "!":
+        if not line or line.rstrip() == "!":
             continue
         lines.append(line)
     return lines
@@ -27,7 +27,6 @@ def push_config(
         msg = f"No config to push for section '{section}' — empty config_text."
         logger.warning(f"[{task.host.name}] {msg}")
         return Result(host=task.host, failed=False, result=msg)
-
     commands = _split_config_lines(config_text)
     if not commands:
         msg = f"Nothing to send for section '{section}' after normalizing config_text."
@@ -73,5 +72,5 @@ def push_config(
         failed=result[0].failed,
         result=output,
         diff=output,
-        changed=True,
+        changed=not result[0].failed,
     )
