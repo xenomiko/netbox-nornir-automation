@@ -2,6 +2,7 @@ import logging
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from .nornir_schemas import DeviceConfig
 from pathlib import Path
+import ipaddress
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ JINJA_ENV = Environment(
     lstrip_blocks=True,
 )
 
+
 CONFIG_SECTIONS = [
     "hostname",
     "interfaces",
@@ -31,6 +33,18 @@ CONFIG_SECTIONS = [
     "security",
     "static_routes",
 ]
+
+
+def cidr_to_netmask(value: str) -> str:
+    try:
+        iface = ipaddress.ip_interface(value)
+        return f"{iface.ip} {iface.netmask}"
+    except ValueError:
+        logger.error("Invalid IP/CIDR value for cidr_to_netmask: %r", value)
+        raise
+
+
+JINJA_ENV.filters["cidr_to_netmask"] = cidr_to_netmask
 
 
 def render_section(section, device_config: DeviceConfig, platform) -> str:
