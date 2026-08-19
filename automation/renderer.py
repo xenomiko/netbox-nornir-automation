@@ -1,6 +1,7 @@
 import logging
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from .nornir_schemas import DeviceConfig
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -10,11 +11,14 @@ PLATFORM_TEMPLATE_DIR = {
     "aoscx": "aruba",
 }
 
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATE_DIR = BASE_DIR / "templates"
 JINJA_ENV = Environment(
-    loader=FileSystemLoader("templates"),
+    loader=FileSystemLoader(str(TEMPLATE_DIR)),
     trim_blocks=True,
     lstrip_blocks=True,
 )
+
 CONFIG_SECTIONS = [
     "hostname",
     "interfaces",
