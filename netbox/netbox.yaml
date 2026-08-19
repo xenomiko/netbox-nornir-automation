@@ -277,3 +277,22 @@ vlans:
   - vid: 30
     name: MANAGEMENT
     status: active
+
+config_contexts:
+  - name: "global-ntp-snmp"
+    weight: 100
+    description: "NTP and SNMP for all lab devices"
+    roles:
+      - virtual-router
+    data:
+      ntp:
+        enabled: true
+        servers:
+          - 10.0.0.1
+          - 10.0.0.2
+      snmp:
+        enabled: true
+        communities:
+          - public
+        servers:
+          - 10.0.0.10

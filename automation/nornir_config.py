@@ -4,6 +4,7 @@ from nornir import InitNornir
 import pynetbox
 from pynetbox import RequestError
 import logging
+from nornir.core.inventory import ConnectionOptions
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -11,6 +12,7 @@ load_dotenv()
 
 def get_nornir():
     nr = InitNornir(
+        logging={"enabled": False},
         runner={
             "plugin": "threaded",
             "options": {"num_workers": 10},
@@ -22,11 +24,18 @@ def get_nornir():
                 "nb_token": os.getenv("NB_TOKEN"),
                 "ssl_verify": True,
                 "use_platform_slug": True,
+                "include": ["config_context"],
             },
         },
     )
-
+    username = os.getenv("NETBOX_DEV_USER")
+    password = os.getenv("NETBOX_DEV_PASS")
     for host in nr.inventory.hosts.values():
+        host.username = username
+        host.password = password
+        host.connection_options["scrapli"] = ConnectionOptions(
+            extras={"auth_strict_key": False}
+        )
         primary_ip4 = host.data.get("primary_ip4")
         if primary_ip4:
             if isinstance(primary_ip4, dict):
@@ -35,7 +44,6 @@ def get_nornir():
                 raw_address = str(primary_ip4)
             if raw_address:
                 host.hostname = raw_address.split("/")[0]
-
     return nr
 
 

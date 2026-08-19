@@ -17,6 +17,7 @@ topology:
     vios1:
       kind: cisco_vios
       image: vrnetlab/cisco_vios:159-3.M6
+      memory: 1G
       mgmt-ipv4: 172.20.20.2
     aoscx1:
       kind: aruba_aoscx
