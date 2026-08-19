@@ -12,8 +12,9 @@ from typing import Any, Dict, List, Optional
 from nornir.core.task import Task, Result
 
 logger = logging.getLogger(__name__)
-REPORT_DIR = Path("reports")
-EXCEPTIONS_FILE = "exceptions.yaml"
+BASE_DIR = Path(__file__).resolve().parent
+REPORT_DIR = BASE_DIR / "reports"
+EXCEPTIONS_FILE = BASE_DIR / "exceptions.yaml"
 try:
     EXCEPTIONS = load_exceptions(EXCEPTIONS_FILE)
 except FileNotFoundError:
