@@ -1,5 +1,6 @@
 import logging
 from nornir.core.task import Task, Result
+from nornir.core.exceptions import NornirSubTaskError
 from nornir_scrapli.tasks import send_configs
 from scrapli.exceptions import ScrapliException
 
@@ -7,11 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 def _split_config_lines(config_text: str) -> list[str]:
-
     lines = []
     for raw_line in config_text.splitlines():
-        line = raw_line.rstrip()
-        if not line or line.rstrip() == "!":
+        line = raw_line.strip()
+        if not line or line == "!":
             continue
         lines.append(line)
     return lines
@@ -48,20 +48,31 @@ def push_config(
             changed=False,
         )
     try:
-        from ..getters.scrapli_getters import ensure_scrapli_platform
-        ensure_scrapli_platform(task)
         result = task.run(
             task=send_configs,
             configs=commands,
+            stop_on_failed=False,
         )
+    except NornirSubTaskError as e:
+        task.host.close_connections()
+        sub_result = e.result
+        scrapli_output = getattr(sub_result, "result", None)
+        scrapli_exc = getattr(sub_result, "exception", None)
+        detail = str(scrapli_output) if scrapli_output else str(scrapli_exc)
+        msg = f"Failed to push section '{section}': {detail}"
+        logger.error(f"[{task.host.name}] {msg}")
+        return Result(host=task.host, failed=True, result=msg)
     except ScrapliException as e:
+        task.host.close_connections()
         msg = f"Scrapli error pushing section '{section}': {e}"
         logger.error(f"[{task.host.name}] {msg}")
         return Result(host=task.host, failed=True, result=msg)
     except Exception as e:
-        msg = f"Failed to push section '{section}': {e}"
+        task.host.close_connections()
+        msg = f"Failed to push section '{section}': {type(e).__name__}: {e}"
         logger.error(f"[{task.host.name}] {msg}")
         return Result(host=task.host, failed=True, result=msg)
+
     output = result[0].result
     logger.info(
         "[%s] Pushed section '%s'. Device output:\n%s",

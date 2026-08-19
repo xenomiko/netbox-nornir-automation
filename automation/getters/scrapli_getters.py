@@ -36,7 +36,6 @@ COMMANDS = {
         "hostname": "show running-config | section ^hostname",
         "interfaces": "show running-config | section ^interface",
         "vlans": "show running-config | section ^vlan",
-        "bgp": "show running-config | section ^router bgp",
         "ospf": "show running-config | section ^router ospf",
         "static_routes": "show running-config | section ^ip route",
         "management": "show running-config | section ^management",
@@ -48,7 +47,6 @@ COMMANDS = {
         "hostname": "show running-config | include ^hostname",
         "interfaces": "show running-config | section interface",
         "vlans": "show running-config | section vlan",
-        "bgp": "show running-config | section router bgp",
         "ospf": "show running-config | section router ospf",
         "static_routes": "show running-config | include ip route",
         "management": "show running-config | section line",
@@ -62,7 +60,6 @@ AOSCX_SECTION_MATCHERS: dict[str, list[str]] = {
     "hostname": [r"^hostname\s"],
     "interfaces": [r"^interface\s"],
     "vlans": [r"^vlan\s"],
-    "bgp": [r"^router bgp\s"],
     "ospf": [r"^router ospf\s"],
     "static_routes": [r"^ip route\s"],
     "management": [r"^ssh\s", r"^https-server\b"],
@@ -185,10 +182,6 @@ def get_vlans(task: Task) -> Result:
     return scrapli_getter(task, "vlans")
 
 
-def get_bgp(task: Task) -> Result:
-    return scrapli_getter(task, "bgp")
-
-
 def get_ospf(task: Task) -> Result:
     return scrapli_getter(task, "ospf")
 
@@ -217,7 +210,6 @@ GETTERS = {
     "hostname": get_hostname,
     "interfaces": get_interfaces,
     "vlans": get_vlans,
-    "bgp": get_bgp,
     "ospf": get_ospf,
     "static_routes": get_static_routes,
     "management": get_management,

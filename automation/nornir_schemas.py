@@ -30,20 +30,6 @@ class OspfConfig(BaseModel):
     networks: list[str] = []
 
 
-class BgpNeighborConfig(BaseModel):
-    address: str
-    remote_as: int = Field(ge=1)
-    description: Optional[str] = None
-
-
-class BgpConfig(BaseModel):
-    enabled: bool = True
-    local_as: int = Field(ge=1)
-    router_id: Optional[str] = None
-    neighbors: list[BgpNeighborConfig] = []
-    networks: list[str] = []
-
-
 class NtpConfig(BaseModel):
     enabled: bool = True
     servers: list[str] = Field(default_factory=list)
@@ -70,14 +56,10 @@ class SecurityConfig(BaseModel):
 
 class DeviceConfig(BaseModel):
     hostname: str = Field(min_length=1)
-
     interfaces: list[InterfaceConfig] = Field(default_factory=list)
     vlans: list[VlanConfig] = Field(default_factory=list)
     static_routes: list[StaticRouteConfig] = Field(default_factory=list)
-
     ospf: Optional[OspfConfig] = None
-    bgp: Optional[BgpConfig] = None
-
     ntp: Optional[NtpConfig] = None
     snmp: Optional[SnmpConfig] = None
     management: Optional[ManagementConfig] = None

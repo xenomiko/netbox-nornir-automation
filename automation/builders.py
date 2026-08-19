@@ -1,11 +1,9 @@
 from .nornir_schemas import (
     InterfaceConfig,
     VlanConfig,
-    StaticRouteConfig,
     NtpConfig,
     SnmpConfig,
     OspfConfig,
-    BgpConfig,
     ManagementConfig,
     SecurityConfig,
     DeviceConfig,
@@ -86,29 +84,12 @@ def build_ospf_config(config_context: dict) -> OspfConfig | None:
     return build_from_context(OspfConfig, config_context, "ospf")
 
 
-def build_bgp_config(config_context: dict) -> BgpConfig | None:
-    return build_from_context(BgpConfig, config_context, "bgp")
-
-
 def build_management_config(config_context: dict) -> ManagementConfig | None:
     return build_from_context(ManagementConfig, config_context, "management")
 
 
 def build_security_config(config_context: dict) -> SecurityConfig | None:
     return build_from_context(SecurityConfig, config_context, "security")
-
-
-def build_static_routes_config(config_context: dict) -> list[StaticRouteConfig]:
-    routes_data = config_context.get("static_routes")
-    if not routes_data or not isinstance(routes_data, list):
-        return []
-    routes = []
-    for item in routes_data:
-        try:
-            routes.append(StaticRouteConfig.model_validate(item))
-        except ValidationError as err:
-            logger.error(f"invalid static_route item in config context: {err}")
-    return routes
 
 
 def build_device_config(nb, task) -> DeviceConfig:
@@ -119,11 +100,9 @@ def build_device_config(nb, task) -> DeviceConfig:
         hostname=task.host.name,
         interfaces=build_interface_config(nb, device),
         vlans=build_vlan_config(nb),
-        static_routes=build_static_routes_config(config_context),
         ntp=build_ntp_config(config_context),
         snmp=build_snmp_config(config_context),
         ospf=build_ospf_config(config_context),
-        bgp=build_bgp_config(config_context),
         management=build_management_config(config_context),
         security=build_security_config(config_context),
     )

@@ -1,8 +1,8 @@
+import ipaddress
 import logging
+from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from .nornir_schemas import DeviceConfig
-from pathlib import Path
-import ipaddress
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,6 @@ JINJA_ENV = Environment(
     lstrip_blocks=True,
 )
 
-
 CONFIG_SECTIONS = [
     "hostname",
     "interfaces",
@@ -28,7 +27,6 @@ CONFIG_SECTIONS = [
     "ntp",
     "snmp",
     "ospf",
-    "bgp",
     "management",
     "security",
     "static_routes",
@@ -44,10 +42,39 @@ def cidr_to_netmask(value: str) -> str:
         raise
 
 
+def cidr_to_ip(value: str) -> str:
+    try:
+        if "/" in str(value):
+            return str(ipaddress.ip_interface(value).ip)
+        return str(value)
+    except ValueError:
+        logger.error("Invalid IP/CIDR value for cidr_to_ip: %r", value)
+        raise
+
+
+def cidr_to_netmask_only(value: str) -> str:
+    try:
+        return str(ipaddress.ip_network(value, strict=False).netmask)
+    except ValueError:
+        logger.error("Invalid IP/CIDR value for cidr_to_netmask_only: %r", value)
+        raise
+
+
+def cidr_to_wildcard(value: str) -> str:
+    try:
+        return str(ipaddress.ip_network(value, strict=False).hostmask)
+    except ValueError:
+        logger.error("Invalid IP/CIDR value for cidr_to_wildcard: %r", value)
+        raise
+
+
 JINJA_ENV.filters["cidr_to_netmask"] = cidr_to_netmask
+JINJA_ENV.filters["cidr_to_ip"] = cidr_to_ip
+JINJA_ENV.filters["cidr_to_netmask_only"] = cidr_to_netmask_only
+JINJA_ENV.filters["cidr_to_wildcard"] = cidr_to_wildcard
 
 
-def render_section(section, device_config: DeviceConfig, platform) -> str:
+def render_section(section: str, device_config: DeviceConfig, platform: str) -> str:
     if platform not in PLATFORM_TEMPLATE_DIR:
         logger.error(
             "Unsupported platform '%s'. Supported options: %s",
@@ -56,9 +83,19 @@ def render_section(section, device_config: DeviceConfig, platform) -> str:
         )
         raise ValueError(f"Invalid platform: {platform}")
     platform_dir = PLATFORM_TEMPLATE_DIR.get(platform)
+    if hasattr(device_config, "model_dump"):
+        context = device_config.model_dump()
+    elif hasattr(device_config, "dict"):
+        context = device_config.dict()
+    elif isinstance(device_config, dict):
+        context = device_config.copy()
+    else:
+        context = {}
+
+    context["device"] = device_config
+
     try:
         template = JINJA_ENV.get_template(f"{platform_dir}/{section}.j2")
-        context = {"device": device_config, **device_config.model_dump()}
         rendered = template.render(**context)
     except TemplateNotFound as e:
         msg = (
@@ -67,6 +104,7 @@ def render_section(section, device_config: DeviceConfig, platform) -> str:
         )
         logger.error(msg)
         raise
+
     logger.info(
         "Rendered section '%s' for platform '%s'.",
         section,
@@ -75,7 +113,7 @@ def render_section(section, device_config: DeviceConfig, platform) -> str:
     return rendered
 
 
-def render_sections(platform, device_config: DeviceConfig) -> dict[str, str]:
+def render_sections(platform: str, device_config: DeviceConfig) -> dict[str, str]:
     rendered_sections = {}
     for section in CONFIG_SECTIONS:
         section_config = getattr(device_config, section, None)
