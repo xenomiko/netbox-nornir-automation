@@ -281,7 +281,7 @@ vlans:
 config_contexts:
   - name: "global-ntp-snmp"
     weight: 100
-    description: "NTP and SNMP for all lab devices"
+    description: "Global Network Configuration Context for all lab devices"
     roles:
       - virtual-router
     data:
@@ -296,3 +296,32 @@ config_contexts:
           - public
         servers:
           - 10.0.0.10
+      ospf:
+        enabled: true
+        process_id: 1
+        router_id: "1.1.1.1"
+        networks:
+          - "172.20.20.0/24 area 0"
+      bgp:
+        enabled: true
+        local_as: 65000
+        router_id: "1.1.1.1"
+        neighbors:
+          - address: "172.20.20.4"
+            remote_as: 65001
+            description: "PEER-CEOS2"
+        networks:
+          - "10.0.0.0/24"
+      management:
+        enabled: true
+        management_interface: "Management0"
+        default_gateway: "172.20.20.1"
+        ssh_enabled: true
+      security:
+        ssh_enabled: true
+        telnet_enabled: false
+        password_encryption: true
+      static_routes:
+        - prefix: "10.100.0.0/16"
+          next_hop: "172.20.20.1"
+          administrative_distance: 10
