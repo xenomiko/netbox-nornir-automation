@@ -83,70 +83,70 @@ devices:
 interfaces:
   # Management Interfaces
   - device_name: "ceos1"
-    name: "eth0"
+    name: "Management1"
     type: "virtual"
     mgmt_only: true
 
   - device_name: "ceos2"
-    name: "eth0"
+    name: "Management1"
     type: "virtual"
     mgmt_only: true
 
   - device_name: "ceos3"
-    name: "eth0"
+    name: "Management1"
     type: "virtual"
     mgmt_only: true
 
   - device_name: "vios1"
-    name: "eth0"
+    name: "GigabitEthernet0/0"
     type: "virtual"
     mgmt_only: true
 
   - device_name: "aoscx1"
-    name: "eth0"
+    name: "mgmt"
     type: "virtual"
     mgmt_only: true    
 
   # Data Interfaces
   - device_name: "ceos1"
-    name: "eth1"
+    name: "Ethernet1"
     type: "1000base-t"
   - device_name: "ceos1"
-    name: "eth2"
+    name: "Ethernet2"
     type: "1000base-t"
   - device_name: "ceos1"
-    name: "eth3"
+    name: "Ethernet3"
     type: "1000base-t"
 
   - device_name: "ceos2"
-    name: "eth1"
+    name: "Ethernet1"
     type: "1000base-t"
   - device_name: "ceos2"
-    name: "eth2"
+    name: "Ethernet2"
     type: "1000base-t"
   - device_name: "ceos2"
-    name: "eth3"
+    name: "Ethernet3"
     type: "1000base-t"
 
   - device_name: "ceos3"
-    name: "eth1"
+    name: "Ethernet1"
     type: "1000base-t"
   - device_name: "ceos3"
-    name: "eth2"
+    name: "Ethernet2"
     type: "1000base-t"
 
   - device_name: "vios1"
-    name: "eth1"
+    name: "GigabitEthernet0/1"
     type: "1000base-t"
   - device_name: "vios1"
-    name: "eth2"
+    name: "GigabitEthernet0/2"
     type: "1000base-t"
 
   - device_name: "aoscx1"
-    name: "eth1"
+    name: "1/1/1"
     type: "1000base-t"
   - device_name: "aoscx1"
-    name: "eth2"
+    name: "1/1/2"
     type: "1000base-t"  
 
 ip_addresses:
@@ -154,116 +154,115 @@ ip_addresses:
   - address: "172.20.20.2/24"
     status: "active"
     device_name: "vios1"
-    interface_name: "eth0"
+    interface_name: "GigabitEthernet0/0"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::2/64"
     status: "active"
     device_name: "vios1"
-    interface_name: "eth0"
+    interface_name: "GigabitEthernet0/0"
     is_primary_ip6: true
 
   # aoscx1
   - address: "172.20.20.3/24"
     status: "active"
     device_name: "aoscx1"
-    interface_name: "eth0"
+    interface_name: "mgmt"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::3/64"
     status: "active"
     device_name: "aoscx1"
-    interface_name: "eth0"
+    interface_name: "mgmt"
     is_primary_ip6: true
 
   # ceos2
   - address: "172.20.20.4/24"
     status: "active"
     device_name: "ceos2"
-    interface_name: "eth0"
+    interface_name: "Management1"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::4/64"
     status: "active"
     device_name: "ceos2"
-    interface_name: "eth0"
+    interface_name: "Management1"
     is_primary_ip6: true
 
   # ceos3
   - address: "172.20.20.5/24"
     status: "active"
     device_name: "ceos3"
-    interface_name: "eth0"
+    interface_name: "Management1"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::5/64"
     status: "active"
     device_name: "ceos3"
-    interface_name: "eth0"
+    interface_name: "Management1"
     is_primary_ip6: true
 
   # ceos1
   - address: "172.20.20.6/24"
     status: "active"
     device_name: "ceos1"
-    interface_name: "eth0"
+    interface_name: "Management1"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::6/64"
     status: "active"
     device_name: "ceos1"
-    interface_name: "eth0"
+    interface_name: "Management1"
     is_primary_ip6: true
 
 cables:
   - status: "connected"
     a_side:
       device: "ceos1"
-      interface: "eth1"
+      interface: "Ethernet1"
     b_side:
       device: "ceos2"
-      interface: "eth1"
+      interface: "Ethernet1"
 
   - status: "connected"
     a_side:
       device: "ceos2"
-      interface: "eth2"
+      interface: "Ethernet2"
     b_side:
       device: "ceos3"
-      interface: "eth1"
+      interface: "Ethernet1"
 
   - status: "connected"
     a_side:
       device: "ceos3"
-      interface: "eth2"
+      interface: "Ethernet2"
     b_side:
       device: "ceos1"
-      interface: "eth2"
+      interface: "Ethernet2"
 
   - status: "connected"
     a_side:
       device: "vios1"
-      interface: "eth1"
+      interface: "GigabitEthernet0/1"
     b_side:
       device: "ceos1"
-      interface: "eth3"
+      interface: "Ethernet3"
 
   - status: "connected"
     a_side:
       device: "aoscx1"
-      interface: "eth1"
+      interface: "1/1/1"
     b_side:
       device: "ceos2"
-      interface: "eth3"
+      interface: "Ethernet3"
 
   - status: "connected"
     a_side:
       device: "vios1"
-      interface: "eth2"
+      interface: "GigabitEthernet0/2"
     b_side:
       device: "aoscx1"
-      interface: "eth2"
-
+      interface: "1/1/2"
 
 vlans:
   - vid: 10
@@ -314,7 +313,7 @@ config_contexts:
           - "10.0.0.0/24"
       management:
         enabled: true
-        management_interface: "Management0"
+        management_interface: "Management1"
         default_gateway: "172.20.20.1"
         ssh_enabled: true
       security:
