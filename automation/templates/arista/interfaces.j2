@@ -1,10 +1,20 @@
 {% for interface in interfaces -%}
-interface {{ interface.name }}
+{% set if_name = interface.name -%}
+{% if if_name == "eth0" -%}
+{% set if_name = "Management0" -%}
+{% elif if_name.startswith("eth") -%}
+{% set if_name = "Ethernet" ~ if_name[3:] -%}
+{% endif -%}
+interface {{ if_name }}
 {% if interface.description -%}
    description {{ interface.description }}
 {% endif -%}
 {% for ip in interface.ip_addresses -%}
+{% if ":" in ip -%}
+   ipv6 address {{ ip }}
+{% else -%}
    ip address {{ ip }}
+{% endif -%}
 {% endfor -%}
 {% if interface.enabled -%}
    no shutdown

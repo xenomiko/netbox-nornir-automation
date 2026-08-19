@@ -36,6 +36,9 @@ def get_nornir():
         host.connection_options["scrapli"] = ConnectionOptions(
             extras={"auth_strict_key": False}
         )
+        host.connection_options["napalm"] = ConnectionOptions(
+            extras={"optional_args": {"inline_transfer": True}}
+        )
         primary_ip4 = host.data.get("primary_ip4")
         if primary_ip4:
             if isinstance(primary_ip4, dict):

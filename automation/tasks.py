@@ -134,9 +134,9 @@ def remediate_task(
             result=msg,
         )
     platform = task.host.platform
-    if platform == "aoscx":
+    if platform in ("aoscx", "ios"):
         from .senders import scrapli_senders as sender
-    elif platform in ("eos", "ios"):
+    elif platform == "eos":
         from .senders import napalm_senders as sender
     else:
         msg = f"Unsupported platform for remediation: {platform}"

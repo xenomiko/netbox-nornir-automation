@@ -3,6 +3,7 @@
 snmp-server community {{ community }} ro
 {% endfor -%}
 {% for server in snmp.servers -%}
-snmp-server host {{ server }}
+{% set default_comm = snmp.communities[0] if snmp.communities else 'public' -%}
+snmp-server host {{ server }} {{ default_comm }}
 {% endfor -%}
 {% endif -%}

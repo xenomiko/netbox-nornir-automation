@@ -48,6 +48,8 @@ def push_config(
             changed=False,
         )
     try:
+        from ..getters.scrapli_getters import ensure_scrapli_platform
+        ensure_scrapli_platform(task)
         result = task.run(
             task=send_configs,
             configs=commands,

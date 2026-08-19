@@ -58,7 +58,8 @@ def render_section(section, device_config: DeviceConfig, platform) -> str:
     platform_dir = PLATFORM_TEMPLATE_DIR.get(platform)
     try:
         template = JINJA_ENV.get_template(f"{platform_dir}/{section}.j2")
-        rendered = template.render(device=device_config)
+        context = {"device": device_config, **device_config.model_dump()}
+        rendered = template.render(**context)
     except TemplateNotFound as e:
         msg = (
             f"Template not found for platform='{platform}', "

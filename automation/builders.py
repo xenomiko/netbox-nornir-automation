@@ -1,6 +1,7 @@
 from .nornir_schemas import (
     InterfaceConfig,
     VlanConfig,
+    StaticRouteConfig,
     NtpConfig,
     SnmpConfig,
     OspfConfig,
@@ -97,6 +98,19 @@ def build_security_config(config_context: dict) -> SecurityConfig | None:
     return build_from_context(SecurityConfig, config_context, "security")
 
 
+def build_static_routes_config(config_context: dict) -> list[StaticRouteConfig]:
+    routes_data = config_context.get("static_routes")
+    if not routes_data or not isinstance(routes_data, list):
+        return []
+    routes = []
+    for item in routes_data:
+        try:
+            routes.append(StaticRouteConfig.model_validate(item))
+        except ValidationError as err:
+            logger.error(f"invalid static_route item in config context: {err}")
+    return routes
+
+
 def build_device_config(nb, task) -> DeviceConfig:
     device = nb.dcim.devices.get(name=task.host.name)
     config_context = task.host.data.get("config_context", {})
@@ -105,6 +119,7 @@ def build_device_config(nb, task) -> DeviceConfig:
         hostname=task.host.name,
         interfaces=build_interface_config(nb, device),
         vlans=build_vlan_config(nb),
+        static_routes=build_static_routes_config(config_context),
         ntp=build_ntp_config(config_context),
         snmp=build_snmp_config(config_context),
         ospf=build_ospf_config(config_context),
