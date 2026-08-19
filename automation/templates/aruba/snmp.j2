@@ -1,8 +1,8 @@
-{% if snmp and snmp.enabled -%}
-{% for community in snmp.communities -%}
-snmp-server community {{ community }}
-{% endfor -%}
-{% for server in snmp.servers -%}
-snmp-server host {{ server }}
-{% endfor -%}
-{% endif -%}
+{% if snmp is defined and snmp.community %}
+snmp-server community {{ snmp.community }}
+{% endif %}
+{% if snmp is defined and snmp.hosts %}
+{% for host in snmp.hosts %}
+snmp-server host {{ host.ip }} trap community {{ host.community | default(snmp.community) }}
+{% endfor %}
+{% endif %}

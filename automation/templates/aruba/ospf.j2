@@ -3,8 +3,13 @@ router ospf {{ ospf.process_id }}
 {% if ospf.router_id -%}
    router-id {{ ospf.router_id }}
 {% endif -%}
-{% for network in ospf.networks -%}
-   network {{ network }} area 0.0.0.0
-{% endfor -%}
+   area 0.0.0.0
 !
+{% for interface in interfaces -%}
+{% if interface.name != "mgmt" -%}
+interface {{ interface.name }}
+   ip ospf {{ ospf.process_id }} area 0.0.0.0
+!
+{% endif -%}
+{% endfor -%}
 {% endif -%}

@@ -4,7 +4,11 @@ router ospf {{ ospf.process_id }}
    router-id {{ ospf.router_id }}
 {% endif -%}
 {% for network in ospf.networks -%}
+{% if "area" in network -%}
+   network {{ network }}
+{% else -%}
    network {{ network }} area 0.0.0.0
+{% endif -%}
 {% endfor -%}
 !
 {% endif -%}

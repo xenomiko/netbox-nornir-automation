@@ -1,10 +1,6 @@
 {% if management and management.enabled -%}
-{% if management.management_interface -%}
-interface {{ management.management_interface }}
 {% if management.default_gateway -%}
-   ip default-gateway {{ management.default_gateway }}
-{% endif -%}
-!
+ip route 0.0.0.0/0 {{ management.default_gateway }}
 {% endif -%}
 {% if management.ssh_enabled -%}
 management ssh

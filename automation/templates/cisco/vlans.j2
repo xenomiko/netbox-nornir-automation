@@ -1,10 +1,1 @@
-{% for vlan in vlans -%}
-vlan {{ vlan.vlan_id }}
-{% if vlan.name -%}
- name {{ vlan.name }}
-{% endif -%}
-{% if not vlan.enabled -%}
- shutdown
-{% endif -%}
-!
-{% endfor -%}
+{# Cisco IOS L3 routers (vIOS) do not support Layer 2 VLAN database commands #}

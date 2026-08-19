@@ -4,7 +4,11 @@ interface {{ interface.name }}
    description {{ interface.description }}
 {% endif -%}
 {% for ip in interface.ip_addresses -%}
+{% if ':' in ip -%}
+   ipv6 address {{ ip }}
+{% else -%}
    ip address {{ ip | cidr_to_netmask }}
+{% endif -%}
 {% endfor -%}
 {% if interface.enabled -%}
    no shutdown

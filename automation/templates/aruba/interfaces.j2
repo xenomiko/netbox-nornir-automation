@@ -1,15 +1,12 @@
-{% for interface in interfaces -%}
-interface {{ interface.name }}
-{% if interface.description -%}
-   description {{ interface.description }}
-{% endif -%}
-{% for ip in interface.ip_addresses -%}
-   ip address {{ ip }}
-{% endfor -%}
-{% if interface.enabled -%}
+{% for intf in interfaces %}
+{% if intf.name != 'mgmt' %}
+interface {{ intf.name }}
+  {% if intf.type == 'routed' or intf.mode == 'routed' %}
+   routing
+  {% endif %}
+  {% if intf.ipv4 %}
+   ip address {{ intf.ipv4 }}
+  {% endif %}
    no shutdown
-{% else -%}
-   shutdown
-{% endif -%}
-!
-{% endfor -%}
+{% endif %}
+{% endfor %}

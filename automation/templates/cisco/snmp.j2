@@ -1,8 +1,5 @@
-{% if snmp and snmp.enabled -%}
-{% for community in snmp.communities -%}
-snmp-server community {{ community }} RO
-{% endfor -%}
-{% for server in snmp.servers -%}
-snmp-server host {{ server }}
-{% endfor -%}
-{% endif -%}
+{% if snmp.servers %}
+{% for host in snmp.servers %}
+snmp-server host {{ host }} version 2c {{ snmp.communities[0] | default('public') }}
+{% endfor %}
+{% endif %}

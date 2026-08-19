@@ -1,4 +1,4 @@
 {% for route in static_routes -%}
-ip route {{ route.prefix }}{% if route.next_hop %} {{ route.next_hop }}{% endif %}{% if route.administrative_distance %} {{ route.administrative_distance }}{% endif %}
+ip route {{ route.prefix }}{% if route.next_hop %} {{ route.next_hop }}{% endif %}
 
 {% endfor -%}

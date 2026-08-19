@@ -1,10 +1,4 @@
-{% for vlan in vlans -%}
+{% for vlan in device.vlans %}
 vlan {{ vlan.vlan_id }}
-{% if vlan.name -%}
-   name {{ vlan.name }}
-{% endif -%}
-{% if not vlan.enabled -%}
-   shutdown
-{% endif -%}
-!
-{% endfor -%}
+    name {{ vlan.name }}
+{% endfor %}

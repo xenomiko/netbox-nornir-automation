@@ -7,8 +7,5 @@ management ssh
 management telnet
    shutdown
 {% endif -%}
-{% if security.password_encryption -%}
-service password-encryption
-{% endif -%}
 !
 {% endif -%}

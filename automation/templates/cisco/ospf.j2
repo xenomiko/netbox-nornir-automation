@@ -4,7 +4,10 @@ router ospf {{ ospf.process_id }}
  router-id {{ ospf.router_id }}
 {% endif -%}
 {% for network in ospf.networks -%}
- network {{ network }} area 0
+{% set net_parts = network.split() -%}
+{% set cidr = net_parts[0] -%}
+{% set area_str = net_parts[1:] | join(' ') -%}
+ network {{ cidr | cidr_to_ip }} {{ cidr | cidr_to_wildcard }} {% if area_str %}{{ area_str }}{% else %}area 0{% endif %}
 {% endfor -%}
 !
 {% endif -%}
