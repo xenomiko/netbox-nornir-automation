@@ -1,484 +1,235 @@
-# Network Configuration Automation
+# Network Source-of-Truth & Config Drift Automation
 
-**In one sentence:** this project uses **NetBox as the network source of truth** and **Nornir as the automation engine** to build, validate, deploy, and verify network device configurations across multiple vendors.
+> Replaces manual, per-device SSH configuration with an automated, auditable pipeline that treats NetBox as the single source of truth.
 
-> 👋 **New to networking/IT?** You don't need to understand the code to understand the value. The project takes structured network information stored in NetBox and uses it to automate configuration across network devices instead of configuring each device manually.
+A lab project that turns **NetBox** into a Source of Truth for a small multi-vendor network, and then uses **Nornir** to continuously check whether the real devices match what NetBox says they should look like — and fix them automatically when they don't.
 
----
+If you're technical: this is a NetBox bootstrap tool + a Jinja2-templated, multi-vendor config-drift audit/remediation pipeline built on Nornir, Scrapli, and NAPALM.
 
-## Project status
-
-🚧 **Portfolio project — actively developed and tested in a virtual network lab.**
-
-The project combines two main components:
-
-* **NetBox** — manages the network data and acts as the source of truth.
-* **Nornir** — consumes that data and orchestrates configuration and verification across network devices.
-
-The configuration templates and device communication have been tested against virtual Cisco, Arista, and Aruba devices.
-
-**Current limitation:** BGP templates are the remaining incomplete configuration templates. The other supported configuration sections have been implemented and tested.
+If you're not: think of it as a robot that reads a "master plan" of how the network should be configured, walks around checking every device against that plan, writes a report of anything that doesn't match, and — if you tell it to — quietly fixes it.
 
 ---
 
-## Why this matters
+## 1. The Problem
 
-On a network with many switches and routers, a routine change — such as adding a VLAN, changing an interface, or updating a routing parameter — often means logging into each device individually and entering the appropriate commands.
+Network configuration usually lives in one of two bad places:
 
-That approach is:
+- **In someone's head / a spreadsheet** — nobody is 100% sure what a device's config *should* be, only what it currently *is*.
+- **Only on the device itself** — if a device is misconfigured by hand ("just this once, temporarily"), nothing ever notices or corrects it. Config drift accumulates silently until it causes an outage.
 
-* **Repetitive** — the same work is repeated for every device
-* **Error-prone** — manual configuration can introduce inconsistencies
-* **Difficult to audit** — checking whether every device matches the intended configuration requires additional manual work
-* **Hard to scale** — the amount of work increases with the number of devices
+Manually logging into every switch and router to check and fix these differences doesn't scale, is error-prone, and gets skipped when people are busy.
 
-This project explores a **source-of-truth-driven automation model**:
+## 2. What It Does
 
-1. **NetBox stores** the structured network information
-2. **Nornir retrieves and orchestrates** the devices
-3. **Builders create** the intended configuration
-4. **Pydantic validates** the configuration data
-5. **Jinja2 renders** vendor-specific configuration
-6. **The appropriate sender applies** the configuration
-7. **Scrapli retrieves** the running configuration
-8. **Diffing compares** intended and actual state
+This project is really two connected tools:
 
-The same overall workflow can therefore be used across Cisco, Arista, and Aruba devices without maintaining a completely separate automation system for each vendor.
+1. **NetBox Bootstrap** (`netbox/`) — Reads a single YAML file describing the intended network (sites, devices, interfaces, IPs, cables, VLANs, config contexts) and pushes it into NetBox via its REST API. Safe to re-run any time; it only creates or updates what's changed.
+2. **Audit & Remediation Pipeline** (`automation/`) — Pulls live inventory and settings straight out of NetBox, renders the *intended* configuration for each device in its own vendor syntax, connects to the real device, pulls its *running* configuration, and **diffs the two**. Anything intended-but-missing is reported as drift. If asked to, the pipeline can then push just the missing lines back onto the device.
 
----
+In short: **NetBox says what should be true. The pipeline checks what is true, and can make it true.**
 
-## Architecture
+## 3. Architecture
 
-```mermaid
-flowchart LR
-
-    NB[(NetBox)]
-
-    subgraph NETBOX["NetBox — Source of Truth"]
-        NS["netbox_schemas.py<br/>Pydantic schemas"]
-        SERVICES["netbox_services.py<br/>NetBox API operations"]
-        CONTEXT["config_context.yaml"]
-    end
-
-    NB --> NS
-    NS --> SERVICES
-    CONTEXT --> SERVICES
-
-    subgraph NORNIR["Nornir — Device Automation"]
-        INV["nornir_config.py<br/>Inventory"]
-        BUILD["builders.py<br/>Configuration builders"]
-        SCHEMA["nornir_schemas.py<br/>Configuration validation"]
-        RENDER["renderer.py<br/>Jinja2 rendering"]
-        TEMPLATES["Vendor templates"]
-        TASKS["tasks.py<br/>Automation tasks"]
-    end
-
-    NB --> INV
-    INV --> TASKS
-    SERVICES --> BUILD
-    TASKS --> BUILD
-    BUILD --> SCHEMA
-    SCHEMA --> RENDER
-    RENDER --> TEMPLATES
-
-    RENDER --> EOS["NAPALM<br/>Arista EOS"]
-    RENDER --> SCRAPLI["Scrapli<br/>Cisco vIOS / Aruba AOS-CX"]
-
-    EOS --> DEV1[(Arista cEOS)]
-    SCRAPLI --> DEV2[(Cisco vIOS)]
-    SCRAPLI --> DEV3[(Aruba AOS-CX)]
-
-    DEV1 --> GET["Scrapli Getters"]
-    DEV2 --> GET
-    DEV3 --> GET
-
-    GET --> DIFF["diffing.py"]
-    RENDER --> DIFF
-    DIFF --> RESULT["Audit / Drift Result"]
+```
+netbox.yaml  ──▶  netbox_services.py  ──▶  NetBox (Source of Truth)
+                                                │
+                                                ▼
+                                   Nornir inventory (NetBoxInventory2)
+                                                │
+                     ┌──────────────────────────┴──────────────────────────┐
+                     ▼                                                     ▼
+        build_device_config() (builders.py)                  get_running_config() (getters/)
+        pulls config context + interfaces/                    connects via Scrapli, pulls
+        vlans from NetBox, validates with Pydantic             the live running-config
+                     │                                                     │
+                     ▼                                                     │
+        render_sections() (renderer.py)                                   │
+        renders per-platform Jinja2 templates                             │
+        into "intended" config text                                      │
+                     │                                                     │
+                     └───────────────▶  diff_section() (diffing.py)  ◀─────┘
+                                                │
+                                    audit_<host>_<ts>.json report
+                                     (missing / unmanaged lines)
+                                                │
+                                     drift found? ──▶ remediate_task()
+                                                │           │
+                                                │      push_config() via
+                                                │      NAPALM (EOS) or
+                                                │      Scrapli (IOS/AOS-CX)
+                                                │           │
+                                                ▼           ▼
+                                   remediation_<host>_<ts>.json report
 ```
 
-### Overall flow
+A parallel `topology.clab.yaml` spins up the actual lab (3× Arista cEOS, 1× Cisco vIOS, 1× Aruba AOS-CX) using Containerlab, so the pipeline has real devices to talk to. A Postman collection is included for manually poking at the NetBox API while building this out.
 
-```text
-                         NetBox
-                           │
-                    Source of Truth
-                           │
-                           ▼
-                    Nornir Inventory
-                           │
-                           ▼
-                  Configuration Builder
-                           │
-                           ▼
-                  Pydantic Validation
-                           │
-                           ▼
-                    Jinja2 Renderer
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-              ▼            ▼            ▼
-           NAPALM       Scrapli       Scrapli
-           Arista        Cisco         Aruba
-             EOS         vIOS         AOS-CX
-              │            │            │
-              └────────────┼────────────┘
-                           │
-                           ▼
-                    Running Config
-                           │
-                        Scrapli
-                           │
-                           ▼
-                        Diffing
-                           │
-                           ▼
-                    Audit / Drift
+## 4. Safety First
+
+Nothing here touches a live device without several guardrails:
+
+- **Dry-run by default.** `python -m automation.main` only *simulates* changes. You must explicitly pass `--apply` to push real config.
+- **Audit-then-remediate, never blind push.** Remediation only ever replays a specific, freshly-generated audit report — it never improvises.
+- **Report integrity checks.** Before remediating, the pipeline verifies the report's `host` and `run_id` match the device and run in progress, so a stale or mismatched report can never be replayed against the wrong device.
+- **Exceptions allowlist** (`automation/exceptions.yaml`) — lets you tell the diff engine "this line existing on the device is fine, don't flag it," so you don't get drowned in noise from vendor-default lines.
+- **Section scoping** (`--sections`) and **audit-only mode** (`--audit-only`) let you limit the blast radius of any run.
+- **Atomic report writes** — audit/remediation reports are written to a temp file and only renamed into place once complete, so a crash mid-write can't leave a corrupted report behind.
+
+## 5. Supported Platforms
+
+| Vendor / OS      | Transport for config push | Transport for config read |
+|-------------------|---------------------------|----------------------------|
+| Arista EOS        | NAPALM (eAPI)              | Scrapli                    |
+| Cisco IOS (vIOS)  | Scrapli                    | Scrapli                    |
+| Aruba AOS-CX       | Scrapli                    | Scrapli                    |
+
+Managed configuration sections: `hostname`, `interfaces`, `vlans`, `ntp`, `snmp`, `ospf`, `management`, `security`, `static_routes`. (Note: Cisco IOS L3 routers don't support Layer 2 VLAN commands, so the Cisco `vlans.j2` template intentionally renders nothing.)
+
+## 6. Project Structure
+
+```
+netbox/
+  netbox.yaml              # Source of Truth — describes the intended lab
+  netbox_schemas.py         # Pydantic validation models for NetBox objects
+  netbox_services.py         # Sync logic: create/update objects idempotently
+  main.py                    # Orchestrates the NetBox bootstrap
+  config_context.yaml        # Example / reference config contexts
+  postman/                   # Postman collection + environment for manual API testing
+
+automation/
+  nornir_config.py           # Builds the Nornir inventory from NetBox
+  builders.py                 # Turns NetBox data into validated DeviceConfig objects
+  nornir_schemas.py            # Pydantic models for device configuration
+  renderer.py                  # Jinja2 rendering engine, per-platform templates
+  templates/{arista,cisco,aruba}/*.j2   # Per-vendor config templates
+  getters/scrapli_getters.py    # Pulls running-config sections from devices
+  diffing.py                     # Set-based diff engine + exceptions filtering
+  exceptions.yaml                 # Allowlist of expected "unmanaged" lines
+  senders/{napalm_senders,scrapli_senders}.py   # Push config to devices
+  tasks.py                         # audit_task / remediate_task Nornir tasks
+  main.py                           # CLI entry point / pipeline orchestrator
+  reports/                           # Generated audit & remediation JSON reports
+
+topology.clab.yaml           # Containerlab topology for the lab devices
+test_config_context_rendering.py   # Unit tests for builders + renderer
+requirements.txt
 ```
 
-The important design principle is the separation between **network data** and **device automation**.
-
-> **NetBox defines the intended network state. Nornir turns that state into an automated workflow across the devices.**
-
----
-
-## NetBox side
-
-The `netbox/` package handles the source-of-truth side of the project.
-
-It is responsible for interacting with NetBox through its API and working with structured network information such as:
-
-* Devices
-* Interfaces
-* IP addresses
-* VLANs
-* Configuration context
-* Other resources required by the automation workflow
-
-The NetBox component uses schemas and service functions to keep the data-handling layer separate from the device-automation layer.
-
-This allows NetBox to remain the central place where the desired network state is defined.
-
----
-
-## Nornir automation side
-
-The `automation/` package consumes the information provided by NetBox and handles the device-side workflow.
-
-Its main responsibilities are:
-
-### Configuration building
-
-`builders.py` converts NetBox data into structured per-device configuration models.
-
-### Configuration validation
-
-`nornir_schemas.py` uses Pydantic models to validate the configuration before it is rendered and sent to a device.
-
-### Configuration rendering
-
-`renderer.py` uses Jinja2 templates to translate the common configuration model into the syntax required by each vendor.
-
-### Configuration delivery
-
-The sender depends on the device platform:
-
-| Platform          | Sender  |
-| ----------------- | ------- |
-| Arista EOS / cEOS | NAPALM  |
-| Cisco vIOS        | Scrapli |
-| Aruba AOS-CX      | Scrapli |
-
-This keeps the higher-level automation workflow independent of the underlying configuration transport.
-
-### Configuration retrieval
-
-Scrapli is used to retrieve the live running configuration from the devices.
-
-Vendor-specific command mappings are used to retrieve the appropriate configuration sections.
-
-### Configuration diffing
-
-`diffing.py` compares the intended configuration generated by the automation against the configuration retrieved from the device.
-
-Known and approved differences can be handled through the YAML exceptions mechanism.
-
----
-
-## Implemented vs. remaining work
-
-### Implemented
-
-#### NetBox
-
-* NetBox API integration
-* NetBox data schemas
-* NetBox service layer
-* Resource synchronization
-* Object lookup and resolution
-* Device-related data management
-* Configuration context support
-
-#### Nornir
-
-* NetBox-backed Nornir inventory
-* Pydantic configuration models
-* Configuration builders
-* Jinja2 rendering engine
-* Vendor-specific template resolution
-* Configuration templates for the supported sections
-* Arista EOS templates
-* Cisco vIOS templates
-* Aruba AOS-CX templates
-* NAPALM configuration delivery for EOS
-* Scrapli configuration delivery for vIOS
-* Scrapli configuration delivery for AOS-CX
-* Scrapli-based running configuration retrieval
-* Per-vendor getter command mappings
-* Configuration diffing
-* YAML-based diff exceptions
-* Dry-run support where supported by the sender
-
-### Remaining work
-
-* **BGP configuration templates**
-* Additional testing and expansion as new configuration sections or vendors are added
-
----
-
-## Supported vendors
-
-The project currently targets three network platforms:
-
-| Vendor | Virtual device | Configuration sender |
-| ------ | -------------- | -------------------- |
-| Arista | cEOS           | NAPALM               |
-| Cisco  | vIOS           | Scrapli              |
-| Aruba  | AOS-CX         | Scrapli              |
-
-The important point is that the **automation workflow remains common**, while device-specific behavior is handled by templates and platform-specific senders/getters.
-
-```text
-                    Common workflow
-                         │
-              ┌──────────┼──────────┐
-              │          │          │
-              ▼          ▼          ▼
-           Arista      Cisco      Aruba
-             │           │          │
-           EOS          vIOS       AOS-CX
-             │           │          │
-          NAPALM       Scrapli    Scrapli
-```
-
----
-
-## Technologies
-
-### NetBox
-
-[**NetBox**](https://netboxlabs.com/) is the network **source of truth**.
-
-It stores structured information about the network that can be consumed by the automation system.
-
-### Pynetbox
-
-[**Pynetbox**](https://github.com/netbox-community/pynetbox) provides Python access to the NetBox API and is used by the project to retrieve and manage NetBox resources.
-
-### Nornir
-
-[**Nornir**](https://nornir.readthedocs.io/) provides the automation and orchestration framework used to execute tasks across network devices.
-
-### Pydantic
-
-[**Pydantic**](https://docs.pydantic.dev/) provides structured configuration models and validation before configuration is rendered or deployed.
-
-### Jinja2
-
-[**Jinja2**](https://jinja.palletsprojects.com/) converts the validated configuration data into vendor-specific CLI syntax.
-
-### NAPALM
-
-[**NAPALM**](https://napalm.readthedocs.io/) is used to deliver configuration to Arista EOS devices.
-
-### Scrapli
-
-[**Scrapli**](https://carlmontanari.github.io/scrapli/) is used for Cisco vIOS and Aruba AOS-CX configuration delivery and for retrieving live configuration from devices.
-
-### Containerlab
-
-[**Containerlab**](https://containerlab.dev/) provides the virtual Cisco, Arista, and Aruba devices used for development and testing.
-
----
-
-## Project structure
-
-```text
-SOT_AUTOMATION_EXTRACT/
-│
-├── automation/
-│   ├── getters/
-│   │   └── scrapli_getters.py       # retrieves live device configuration
-│   │
-│   ├── senders/
-│   │   ├── napalm_senders.py        # Arista EOS configuration delivery
-│   │   └── scrapli_senders.py       # Cisco vIOS / Aruba AOS-CX delivery
-│   │
-│   ├── templates/
-│   │   ├── arista/                  # Arista Jinja2 templates
-│   │   ├── aruba/                   # Aruba Jinja2 templates
-│   │   └── cisco/                   # Cisco Jinja2 templates
-│   │
-│   ├── builders.py                  # builds configuration from NetBox data
-│   ├── diffing.py                   # compares intended vs. running config
-│   ├── nornir_config.py             # Nornir and NetBox inventory setup
-│   ├── nornir_schemas.py            # configuration validation models
-│   ├── renderer.py                  # vendor-specific configuration rendering
-│   └── tasks.py                     # Nornir automation tasks
-│
-├── netbox/
-│   ├── netbox_schemas.py            # NetBox data schemas
-│   ├── netbox_services.py            # NetBox API/service operations
-│   ├── config_context.yaml           # NetBox configuration context
-│   ├── netbox.yaml                   # NetBox configuration
-│   ├── main.py                       # NetBox workflow entrypoint
-│   └── netbox_README.md              # NetBox-specific documentation
-│
-├── topology.clab.yaml                # Containerlab topology
-├── requirements.txt                  # Python dependencies
-├── .env                              # environment variables
-└── README.md
-```
-
----
-
-## Setup
-
-### Prerequisites
-
-* Python 3.11+
-* A running NetBox instance
-* A NetBox API token
-* Docker
-* Containerlab if you want to run the virtual network lab
-
-### Installation
+## 7. Technologies
+
+- **NetBox** — network Source of Truth / DCIM-IPAM platform
+- **Pynetbox** — Python client for the NetBox REST API
+- **Nornir** — Python automation framework (inventory, task orchestration, concurrency)
+- **NetBoxInventory2** — Nornir plugin that builds inventory straight from NetBox
+- **Scrapli / nornir-scrapli** — screen-scraping transport for Cisco IOS & Aruba AOS-CX
+- **NAPALM / nornir-napalm** — multi-vendor abstraction layer for Arista EOS
+- **Jinja2** — templating engine for rendering vendor-specific configuration
+- **Pydantic** — schema validation for both NetBox payloads and device configuration
+- **Containerlab** — spins up the virtual lab topology (cEOS, vIOS, AOS-CX)
+- **Postman** — manual/exploratory testing of the NetBox API
+- **PyYAML / python-dotenv** — configuration and secrets loading
+
+## 8. Setup
 
 ```bash
-# Clone the repository
-git clone <this-repo-url>
-cd <repo-directory>
-
-# Create a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
+# 1. Install dependencies
 pip install -r requirements.txt
+
+# 2. Create a .env file in the project root
+NB_URL=http://localhost:8000
+NB_TOKEN=your_netbox_api_token
+NETBOX_DEV_USER=your_device_ssh_username
+NETBOX_DEV_PASS=your_device_ssh_password
+
+# 3. Bring up the lab topology (requires Containerlab)
+sudo containerlab deploy -t topology.clab.yaml
+
+# 4. Bootstrap NetBox from netbox/netbox.yaml
+python -m netbox.main
 ```
 
-### Environment variables
+At this point NetBox is populated with the sites, devices, interfaces, IPs, cables, VLANs, and config contexts described in `netbox/netbox.yaml`, and the lab devices are reachable.
 
-Configure the required NetBox connection variables in `.env`:
-
-```env
-NB_URL=https://your-netbox-instance
-NB_TOKEN=your-netbox-api-token
-```
-
-Do not commit real API tokens or credentials to the repository.
-
----
-
-## Virtual lab
-
-The project is tested against a Containerlab topology containing virtual Cisco, Arista, and Aruba devices.
+## 9. Usage
 
 ```bash
-sudo clab deploy -t topology.clab.yaml
+# Audit every device, report drift, do NOT touch any device
+python -m automation.main --audit-only
+
+# Audit + remediate in dry-run mode (default) — shows what WOULD change
+python -m automation.main
+
+# Audit + remediate for real
+python -m automation.main --apply
+
+# Target a single device
+python -m automation.main --host ceos1 --apply
+
+# Limit remediation to specific sections only
+python -m automation.main --apply --sections ntp snmp
 ```
 
-The corresponding devices must also exist in NetBox with the information required by the Nornir inventory.
+Each run prints a summary table like:
 
-This provides a controlled environment for developing and testing the automation workflow without modifying production network equipment.
-
----
-
-## Why this architecture?
-
-The project intentionally separates **source-of-truth management** from **device automation**.
-
-### NetBox answers:
-
-> **"What should the network look like?"**
-
-### Nornir answers:
-
-> **"How do I apply and verify that state across the devices?"**
-
-This separation provides:
-
-* **Single source of truth** — network information is centralized in NetBox.
-* **Vendor independence** — the high-level automation workflow is shared across platforms.
-* **Validation before deployment** — configuration data is checked before commands are generated.
-* **Reusable automation** — the same workflow can operate across multiple devices.
-* **Configuration verification** — actual device state can be compared against intended state.
-* **Clear separation of responsibilities** — data management, configuration generation, device communication, and verification remain separate components.
-
----
-
-## Project goal
-
-The goal is to provide a complete **source-of-truth-driven network automation workflow**:
-
-```text
-                  ┌─────────────────┐
-                  │     NetBox      │
-                  │ Source of Truth │
-                  └────────┬────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │     Nornir      │
-                  │    Inventory    │
-                  └────────┬────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │ Build & Validate│
-                  │    Pydantic     │
-                  └────────┬────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │     Render      │
-                  │     Jinja2      │
-                  └────────┬────────┘
-                           │
-                    ┌──────┴──────┐
-                    │             │
-                    ▼             ▼
-                 NAPALM        Scrapli
-                 Arista      Cisco / Aruba
-                    │             │
-                    └──────┬──────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │     Verify      │
-                  │ Scrapli + Diff  │
-                  └────────┬────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  Audit / Drift  │
-                  │     Result     │
-                  └─────────────────┘
+```
+DEVICE       PLATFORM   DRIFT DETECTED   STATUS
+ceos1        eos        True             SUCCESS
+ceos2        eos        False            IN SYNC
+vios1        ios        True             DRY RUN
 ```
 
-The objective is not simply to automate CLI commands. It is to create a **repeatable, validated, source-of-truth-driven workflow** where network state is defined centrally in NetBox and the automation system handles configuration and verification across the device fleet.
+## 10. How the Diff Engine Works
 
----
+For each managed config section (e.g. `ntp`, `ospf`), the pipeline:
 
-*The project is organized around two complementary responsibilities: **NetBox for network data and source-of-truth management**, and **Nornir for device automation and verification**.*
+1. **Renders the intended config** for that section from NetBox data, using the device's platform-specific Jinja2 template.
+2. **Retrieves the running config** for that same section directly from the device.
+3. **Normalizes both** into sets of trimmed, non-empty lines.
+4. **Computes the difference both ways:**
+   - `missing` = lines that should be on the device but aren't → this is drift that remediation will push.
+   - `unmanaged` = lines that are on the device but weren't expected → these are reported, but filtered against `exceptions.yaml` first, so known-safe lines (vendor defaults, banners, etc.) don't create noise.
+5. A device is flagged as having drift if either list is non-empty after filtering.
+
+This is intentionally a line-based, set-based diff rather than a full structural config parser — simple, fast, and easy to reason about, at the cost of being whitespace/line-order sensitive (which the normalization step accounts for).
+
+## 11. Outputs & Audit Trail
+
+Every run leaves a paper trail in `automation/reports/`:
+
+- **`audit_<host>_<timestamp>_<run_id>.json`** — the full intended config, the running config's diff (missing/unmanaged lines per section), and whether drift was found.
+- **`remediation_<host>_<timestamp>_<run_id>.json`** — which sections were pushed, whether each succeeded, the device's raw output, and whether the config was saved to startup config.
+
+Because remediation reports carry the same `run_id` as the audit that triggered them, and because remediation refuses to run against a report for the wrong host or a stale `run_id`, you always have a verifiable, timestamped record of exactly what was found and exactly what was changed — useful both for troubleshooting and as a change-management audit trail.
+
+## 12. Why This Project?
+
+I built this to get real, hands-on experience with the pattern that shows up again and again in modern NetOps: **NetBox as Source of Truth → drift detection → automated remediation**, rather than treating network automation as "just push some config with a script." Specifically it let me practice:
+
+- Designing an idempotent Source-of-Truth sync (NetBox bootstrap)
+- Multi-vendor abstraction with Jinja2 + Pydantic validation
+- Building a real audit/remediation loop instead of one-way config pushes
+- Safe-by-default automation design (dry-run, report verification, exceptions allowlist)
+- Testing infrastructure code (`test_config_context_rendering.py`)
+
+## 13. Time Saved
+
+In this 5-device lab, a full audit across all devices and all nine config sections runs in roughly 20 seconds. The manual equivalent — logging into each device one at a time, running `show running-config`, and comparing it line-by-line against notes or a spreadsheet — would realistically take 15–20 minutes, and is exactly the kind of check that gets skipped when things get busy. That gap only widens as the network grows: this pipeline scales by adding devices to NetBox, not by adding more manual checklist time.
+
+## 14. Project Status
+
+**Working end-to-end** in the lab environment described in `topology.clab.yaml`:
+
+- NetBox bootstrap: ✅ sites, manufacturers, roles, device types, devices, interfaces, IP addresses, cables, VLANs, config contexts
+- Audit pipeline: ✅ multi-vendor (EOS, IOS, AOS-CX), 9 config sections, drift reporting with exceptions filtering
+- Remediation pipeline: ✅ dry-run and live modes, section targeting, report-integrity verification, config save
+- Unit tests: ✅ builders + multi-platform template rendering (`test_config_context_rendering.py`)
+
+## 15. Remaining Work
+
+- Broaden test coverage to the diff engine, senders, and the NetBox sync layer (currently only builders/rendering are unit-tested)
+- Add CI to run the test suite and lint on every change
+- Support for additional platforms/vendors beyond EOS, IOS, and AOS-CX
+- Structured/config-aware diffing (e.g. parsing into a config tree) instead of line-based diffing, to reduce false positives from harmless line-order differences
+- Scheduling/orchestration (e.g. a cron job or pipeline trigger) for continuous, unattended auditing
+- Alerting/notifications (Slack, email, etc.) when drift is detected, instead of relying on someone reading the JSON reports
+- Expanding the NetBox Source of Truth to cover more object types (e.g. circuits, racks, power)
