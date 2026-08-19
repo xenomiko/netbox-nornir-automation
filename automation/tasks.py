@@ -6,6 +6,7 @@ import logging
 import os
 import tempfile
 import time
+from datetime import datetime
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -65,7 +66,8 @@ def audit_task(task: Task, nb: Any, run_id: str = None) -> Result:
         "diffs": diffs,
         "rendered_intended": rendered_sections,
     }
-    report_path = REPORT_DIR / f"audit_{run_id}_{host_name}.json"
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_path = REPORT_DIR / f"audit_{host_name}_{timestamp_str}_{run_id}.json"
     atomic_json_writer(report_path, report_data)
     return Result(
         host=task.host,
@@ -180,7 +182,8 @@ def remediate_task(
         "timestamp": time.time(),
         "applied_sections": pushed_sections,
     }
-    audit_log_path = REPORT_DIR / f"remediation_{expected_run_id}_{host_name}.json"
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    audit_log_path = REPORT_DIR / f"remediation_{host_name}_{timestamp_str}_{expected_run_id}.json"
     atomic_json_writer(
         audit_log_path,
         remediation_summary,
