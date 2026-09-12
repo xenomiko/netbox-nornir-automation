@@ -1,5 +1,5 @@
 import pytest
-from automation.diffing import normalize_config
+from automation.diffing import normalize_config, diff_section
 
 
 class TestNormalizeConfig:
@@ -57,3 +57,64 @@ class TestNormalizeConfig:
 
     def test_single_line_without_trailing_newline(self):
         assert normalize_config("hostname foo") == ["hostname foo"]
+
+
+class TestDiffSections:
+    def test_configs_empty_returns_empty_list(self):
+        result = diff_section("", "")
+        assert result["missing"] == []
+        assert result["unmanaged"] == []
+
+    def test_identical_configs_returns_empty_lists(self):
+        line1 = "hello world"
+        line2 = "hello world"
+        result = diff_section(line1, line2)
+        assert result["missing"] == []
+        assert result["unmanaged"] == []
+
+    def test_unmanaged_only_returns_unmanaged(self):
+        text1 = "hello world\ni am sohaib mehdaoui"
+        text2 = "hello world\ni am sohaib mehdaoui\nfourth year student"
+        result = diff_section(text1, text2)
+        assert result["missing"] == []
+        assert result["unmanaged"] == ["fourth year student"]
+
+    def test_missing_only_returns_missing(self):
+        text1 = "hello world\ni am sohaib mehdaoui\nfourth year student"
+        text2 = "hello world\ni am sohaib mehdaoui"
+        result = diff_section(text1, text2)
+        assert result["missing"] == ["fourth year student"]
+        assert result["unmanaged"] == []
+
+    def test_missing_and_unmanaged_returns_both(self):
+        text1 = "hello world\ni am sohaib mehdaoui\nfourth year student"
+        text2 = "hello world\ni am sohaib mehdaoui\nfrom casablanca"
+        result = diff_section(text1, text2)
+        assert result["missing"] == ["fourth year student"]
+        assert result["unmanaged"] == ["from casablanca"]
+
+    def test_duplicate_lines_dont_change_output(self):
+        text1 = "hello world\nhello world"
+        text2 = "hello world\nhello world\nhello world"
+        result = diff_section(text1, text2)
+        assert result["missing"] == []
+        assert result["unmanaged"] == []
+
+    def test_order_independence_returns_empty_lists(self):
+        text1 = "hello world\ni am sohaib mehdaoui\nfourth year student"
+        text2 = "fourth year student\nhello world\ni am sohaib mehdaoui"
+        result = diff_section(text1, text2)
+        assert result["missing"] == []
+        assert result["unmanaged"] == []
+
+    def test_indetation_whitespace_sensitivity(self):
+        text1 = "hello world\ni am sohaib mehdaoui"
+        text2 = "hello world\n i am sohaib mehdaoui"
+        result = diff_section(text1, text2)
+        assert result["missing"] == ["i am sohaib mehdaoui"]
+        assert result["unmanaged"] == [" i am sohaib mehdaoui"]
+
+    def test_both_configs_none_returns_empty_lists(self):
+        result = diff_section(None, None)
+        assert result["missing"] == []
+        assert result["unmanaged"] == []
