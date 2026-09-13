@@ -1,5 +1,5 @@
 import pytest
-from automation.diffing import normalize_config, diff_section
+from automation.diffing import normalize_config, diff_section, load_exceptions
 
 
 class TestNormalizeConfig:
@@ -118,3 +118,17 @@ class TestDiffSections:
         result = diff_section(None, None)
         assert result["missing"] == []
         assert result["unmanaged"] == []
+
+
+class TestLoadExceptions:
+
+    def test_file_doesnt_exist_raises_FileNotFoundError(self, tmp_path):
+        missing_path = tmp_path / "missing.yaml"
+        with pytest.raises(FileNotFoundError):
+            load_exceptions(str(missing_path))
+
+    def test_invalid_yaml_raises_ValueError(self, tmp_path):
+        bad_file = tmp_path / "bad_file.yaml"
+        bad_file.write_text("interfaces: [unclosed_list\n")
+        with pytest.raises(ValueError):
+            load_exceptions(str(bad_file))
