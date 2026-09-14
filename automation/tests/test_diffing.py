@@ -132,3 +132,76 @@ class TestLoadExceptions:
         bad_file.write_text("interfaces: [unclosed_list\n")
         with pytest.raises(ValueError):
             load_exceptions(str(bad_file))
+
+    def test_empty_yaml_returns_empty_dict(self, tmp_path):
+        empty_file = tmp_path / "empty_file.yaml"
+        empty_file.write_text("")
+        assert load_exceptions(str(empty_file)) == {}
+
+    def test_yaml_not_dictionary_raises_TypeError(self, tmp_path):
+        invalid_file = tmp_path / "invalid.yaml"
+        invalid_file.write_text("- hello\n- world")
+        with pytest.raises(TypeError):
+            load_exceptions(str(invalid_file))
+
+    def test_sections_is_none_returns_empty_set(self, tmp_path):
+        empty_sections = tmp_path / "empty.yaml"
+        empty_sections.write_text("interfaces:")
+        assert load_exceptions(str(empty_sections)) == {"interfaces": set()}
+
+    def test_single_line_strings_returns_set(self, tmp_path):
+        normal_file = tmp_path / "normal_file.yaml"
+        normal_file.write_text('interfaces:\n - "description test"\n - "no shutdown"')
+        assert load_exceptions(str(normal_file)) == {
+            "interfaces": set(["description test", "no shutdown"])
+        }
+
+    def test_list_item_with_multiline_string_keeps_all_lines(self, tmp_path):
+        normal_file = tmp_path / "exceptions.yaml"
+        normal_file.write_text('interfaces:\n  - "foo\\nbar"\n')
+        result = load_exceptions(str(normal_file))
+        assert result == {"interfaces": {"foo", "bar"}}
+
+    def test_multiple_lines_string_returns_set(self, tmp_path):
+        normal_file = tmp_path / "normal_file.yaml"
+        normal_file.write_text('interfaces: "hello world\\n i am sohaib"')
+        result = load_exceptions(str(normal_file))
+        assert result == {"interfaces": {"hello world", " i am sohaib"}}
+
+    def test_section_containing_non_string_raises_TypeError(self, tmp_path):
+        bad_file = tmp_path / "bad_file.yaml"
+        bad_file.write_text("interfaces: \n - 42")
+        with pytest.raises(TypeError):
+            load_exceptions(str(bad_file))
+
+    def test_invalid_section_value_type_raises_TypeError(self, tmp_path):
+        bad_file = tmp_path / "bad_file.yaml"
+        bad_file.write_text("interfaces:\n interface1:\n  - hello")
+        with pytest.raises(TypeError):
+            load_exceptions(str(bad_file))
+
+    def test_multiple_sections_with_multiple_types(self, tmp_path):
+        good_file = tmp_path / "good_file.yaml"
+        good_file.write_text(
+            'interfaces:\n  - "interfaces1"\n  - "i am sohaib"\n'
+            'vlan: "vlan1\\nvlan2"\n'
+            'ospf: ""\n'
+        )
+        result = load_exceptions(str(good_file))
+        assert result == {
+            "interfaces": {"interfaces1", "i am sohaib"},
+            "vlan": {"vlan1", "vlan2"},
+            "ospf": set(),
+        }
+
+    def test_blank_element_in_a_list_returns_normal_set(self, tmp_path):
+        good_file = tmp_path / "good_file.yaml"
+        good_file.write_text('interfaces:\n - "interface1"\n - ""')
+        result = load_exceptions(str(good_file))
+        assert result == {"interfaces": {"interface1"}}
+
+    def test_section_with_singleLine_string(self, tmp_path):
+        good_file = tmp_path / "good_file.yaml"
+        good_file.write_text('interfaces: "interface1"')
+        result = load_exceptions(str(good_file))
+        assert result == {"interfaces": {"interface1"}}
