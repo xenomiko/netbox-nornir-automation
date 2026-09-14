@@ -52,7 +52,7 @@ def load_exceptions(file_path: str) -> dict[str, set[str]]:
                     )
                 normalized = normalize_config(line)
                 if normalized:
-                    normalized_lines.add(normalized[0])
+                    normalized_lines.update(normalized)
             exceptions[section] = normalized_lines
         elif isinstance(lines, str):
             normalized = normalize_config(lines)
