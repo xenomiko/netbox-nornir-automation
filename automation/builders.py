@@ -17,12 +17,15 @@ logger = logging.getLogger(__name__)
 def build_interface_config(nb, device) -> list[InterfaceConfig]:
     netbox_interfaces = list(nb.dcim.interfaces.filter(device_id=device.id))
     all_ips = nb.ipam.ip_addresses.filter(device_id=device.id)
-
     ips_by_interface = {}
     for ip in all_ips:
-        if ip.assigned_object_id:
+        if ip.assigned_object_id and ip.address:
             ips_by_interface.setdefault(ip.assigned_object_id, []).append(ip.address)
-
+        elif ip.assigned_object_id:
+            logger.warning(
+                f"IP address record (id={getattr(ip, 'id', 'unknown')}) assigned to "
+                f"interface {ip.assigned_object_id} has no address value; skipping."
+            )
     interfaces = []
     for interface in netbox_interfaces:
         interfaces.append(
@@ -35,6 +38,7 @@ def build_interface_config(nb, device) -> list[InterfaceConfig]:
             )
         )
 
+    return interfaces
     return interfaces
 
 
