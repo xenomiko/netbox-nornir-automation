@@ -188,18 +188,12 @@ class TestLoadExceptions:
         }
 
     def test_multiline_list_string_folds_without_separator(self, tmp_path):
-        # YAML double-quoted "\<newline>" is an escaped line break: it joins
-        # the two lines with no break and no separator, so this is a single
-        # list item "foobar", not two separate lines.
         normal_file = tmp_path / "exceptions.yaml"
         normal_file.write_text('interfaces:\n  - "foo\\\nbar"\n')
         result = load_exceptions(str(normal_file))
         assert result == {"interfaces": {"foobar"}}
 
     def test_multiline_section_string_folds_without_separator(self, tmp_path):
-        # Same escaped-line-break rule; PyYAML also strips the leading
-        # whitespace of the continued line before joining, so the result is
-        # "hello worldi am sohaib" as a single string.
         normal_file = tmp_path / "normal_file.yaml"
         normal_file.write_text('interfaces: "hello world\\\n i am sohaib"')
         result = load_exceptions(str(normal_file))
@@ -228,8 +222,6 @@ class TestLoadExceptions:
             'ospf: ""\n'
         )
         result = load_exceptions(str(good_file))
-        # "vlan1\<newline>vlan2" is an escaped line break in YAML, so it
-        # folds to a single string "vlan1vlan2", not two set members.
         assert result == {
             "interfaces": {"interfaces1", "interface2"},
             "vlan": {"vlan1vlan2"},
