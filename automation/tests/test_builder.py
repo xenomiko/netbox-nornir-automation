@@ -3,6 +3,7 @@ from automation.builders import (
     build_interface_config,
     build_vlan_config,
     build_from_context,
+    intended_vlans_dict,
 )
 import pytest
 from pydantic import ValidationError
@@ -324,3 +325,37 @@ def test_section_has_extra_field():
     assert isinstance(result, NtpConfig)
     assert result.enabled is True
     assert result.servers == ["10.0.0.1"]
+
+
+# testing intended_vlans_dict
+
+
+def test_intended_vlans_dict_empty():
+    nb = FakeNB(vlans=[])
+    result = intended_vlans_dict(nb)
+    assert result == {}
+
+
+def test_intended_vlans_name_is_none():
+    nb = FakeNB(vlans=[FakeVlan(name=None, vid=2)])
+    result = intended_vlans_dict(nb)
+    assert result[2] is None
+
+
+def test_intended_vlans_one_vlan():
+    nb = FakeNB(vlans=[FakeVlan(name="vlan1", vid=2)])
+    result = intended_vlans_dict(nb)
+    assert result[2] == "vlan1"
+
+
+def test_intended_vlans_multiple_vlans():
+    nb = FakeNB(vlans=[FakeVlan(name="vlan1", vid=2), FakeVlan(name="vlan2", vid=3)])
+    result = intended_vlans_dict(nb)
+    assert result[2] == "vlan1"
+    assert result[3] == "vlan2"
+
+
+def test_intended_vlans_vlan_ids_override():
+    nb = FakeNB(vlans=[FakeVlan(name="vlan1", vid=2), FakeVlan(name="vlan2", vid=2)])
+    result = intended_vlans_dict(nb)
+    assert result[2] == "vlan2"
