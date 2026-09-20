@@ -1,7 +1,22 @@
 from types import SimpleNamespace
-from automation.builders import build_interface_config, build_vlan_config
+from automation.builders import (
+    build_interface_config,
+    build_vlan_config,
+    build_from_context,
+)
 import pytest
 from pydantic import ValidationError
+from automation.nornir_schemas import (
+    NtpConfig,
+    VlanConfig,
+    SecurityConfig,
+    SnmpConfig,
+    StaticRouteConfig,
+    OspfConfig,
+    DeviceConfig,
+    ManagementConfig,
+    InterfaceConfig,
+)
 
 
 class FakeInterface:
@@ -261,3 +276,51 @@ def test_multiple_vlans_order():
     result = build_vlan_config(nb)
     assert result[0].name == "data"
     assert result[1].name == "voice"
+
+
+# testing build_from_context
+
+
+@pytest.mark.parametrize("key_input", ["", None, "wrong"])
+def test_key_not_found_returns_none(key_input):
+    config_context = {"ntp": {"enabled": True, "servers": ["10.0.0.1"]}}
+    result = build_from_context(NtpConfig, config_context=config_context, key=key_input)
+    assert result is None
+
+
+def test_correct_key_returns_validated_model():
+    config_context = {"ntp": {"enabled": True, "servers": ["10.0.0.1"]}}
+    result = build_from_context(NtpConfig, config_context=config_context, key="ntp")
+    assert isinstance(result, NtpConfig)
+    assert result.enabled is True
+    assert result.servers == ["10.0.0.1"]
+
+
+@pytest.mark.parametrize("falsy_value", [None, {}])
+def test_key_present_but_value_is_falsy_returns_none(falsy_value):
+    config_context = {"ntp": falsy_value}
+    result = build_from_context(NtpConfig, config_context=config_context, key="ntp")
+    assert result is None
+
+
+def test_invalid_data_with_valid_key(caplog):
+    config_context = {"ntp": {"enabled": True, "servers": [123]}}
+    result = build_from_context(NtpConfig, config_context=config_context, key="ntp")
+    assert result is None
+    assert "invalid 'ntp' config context data" in caplog.text
+
+
+def test_missing_required_field_returns_none():
+    config_context = {"ospf": {"enabled": True}}
+    result = build_from_context(OspfConfig, config_context=config_context, key="ospf")
+    assert result is None
+
+
+def test_section_has_extra_field():
+    config_context = {
+        "ntp": {"enabled": True, "servers": ["10.0.0.1"], "testing": "test"}
+    }
+    result = build_from_context(NtpConfig, config_context=config_context, key="ntp")
+    assert isinstance(result, NtpConfig)
+    assert result.enabled is True
+    assert result.servers == ["10.0.0.1"]
