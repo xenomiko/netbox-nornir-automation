@@ -2,8 +2,14 @@ from types import SimpleNamespace
 from automation.builders import (
     build_interface_config,
     build_vlan_config,
-    build_from_context,
     intended_vlans_dict,
+    build_ntp_config,
+    build_snmp_config,
+    build_ospf_config,
+    build_management_config,
+    build_security_config,
+    build_device_config,
+    build_from_context,
 )
 import pytest
 from pydantic import ValidationError
@@ -43,12 +49,14 @@ class FakeVlan:
 
 
 class FakeNB:
-    def __init__(self, interfaces=None, ips=None, vlans=None):
+    def __init__(self, interfaces=None, ips=None, vlans=None, device=None):
         self.interfaces = interfaces or []
         self.ips = ips or []
         self.vlans = vlans or []
+        self.device = device
         self.dcim = SimpleNamespace(
-            interfaces=SimpleNamespace(filter=lambda device_id: self.interfaces)
+            interfaces=SimpleNamespace(filter=lambda device_id: self.interfaces),
+            devices=SimpleNamespace(get=lambda name: self.device),
         )
         self.ipam = SimpleNamespace(
             ip_addresses=SimpleNamespace(filter=lambda device_id: self.ips),
@@ -359,3 +367,156 @@ def test_intended_vlans_vlan_ids_override():
     nb = FakeNB(vlans=[FakeVlan(name="vlan1", vid=2), FakeVlan(name="vlan2", vid=2)])
     result = intended_vlans_dict(nb)
     assert result[2] == "vlan2"
+
+
+# testing wrapper builder functions
+
+
+def test_build_snmp_config_wires_correct_model_and_key():
+    config_context = {
+        "snmp": {"enabled": True, "communities": ["public"], "servers": ["10.0.0.2"]}
+    }
+    result = build_snmp_config(config_context)
+    assert isinstance(result, SnmpConfig)
+    assert result.communities == ["public"]
+    assert result.servers == ["10.0.0.2"]
+
+
+def test_build_ospf_config_wires_correct_model_and_key():
+    config_context = {
+        "ospf": {"enabled": True, "process_id": 1, "networks": ["10.0.0.0/24"]}
+    }
+    result = build_ospf_config(config_context)
+    assert isinstance(result, OspfConfig)
+    assert result.process_id == 1
+    assert result.networks == ["10.0.0.0/24"]
+
+
+def test_build_management_config_wires_correct_model_and_key():
+    config_context = {
+        "management": {"management_interface": "mgmt0", "default_gateway": "10.0.0.1"}
+    }
+    result = build_management_config(config_context)
+    assert isinstance(result, ManagementConfig)
+    assert result.management_interface == "mgmt0"
+    assert result.default_gateway == "10.0.0.1"
+
+
+def test_build_security_config_wires_correct_model_and_key():
+    config_context = {
+        "security": {
+            "ssh_enabled": True,
+            "telnet_enabled": False,
+            "password_encryption": True,
+        }
+    }
+    result = build_security_config(config_context)
+    assert isinstance(result, SecurityConfig)
+    assert result.telnet_enabled is False
+
+
+def test_build_ntp_config_wires_correct_model_and_key():
+    config_context = {"ntp": {"enabled": True, "servers": ["10.0.0.1"]}}
+    result = build_ntp_config(config_context)
+    assert isinstance(result, NtpConfig)
+    assert result.servers == ["10.0.0.1"]
+
+
+# testing build_device_config
+
+
+def test_build_device_config_minimal():
+    device_obj = SimpleNamespace(id=1)
+    nb = FakeNB(interfaces=[], ips=[], vlans=[], device=device_obj)
+    task = SimpleNamespace(
+        host=SimpleNamespace(
+            name="router1",
+            data={"config_context": {}},
+        )
+    )
+
+    result = build_device_config(nb, task)
+
+    assert isinstance(result, DeviceConfig)
+    assert result.hostname == "router1"
+    assert result.interfaces == []
+    assert result.vlans == []
+    assert result.ntp is None
+    assert result.snmp is None
+    assert result.ospf is None
+    assert result.management is None
+    assert result.security is None
+
+
+def test_build_device_config_fully_populated():
+    device_obj = SimpleNamespace(id=1)
+    nb = FakeNB(
+        interfaces=[FakeInterface(id=1, name="eth0", description="uplink")],
+        ips=[FakeIP(assigned_object_id=1, address="192.168.1.1")],
+        vlans=[FakeVlan(vid=10, name="data", status="active")],
+        device=device_obj,
+    )
+    task = SimpleNamespace(
+        host=SimpleNamespace(
+            name="router1",
+            data={
+                "config_context": {
+                    "ntp": {"enabled": True, "servers": ["10.0.0.1"]},
+                    "snmp": {
+                        "enabled": True,
+                        "communities": ["public"],
+                        "servers": ["10.0.0.2"],
+                    },
+                    "ospf": {
+                        "enabled": True,
+                        "process_id": 1,
+                        "networks": ["10.0.0.0/24"],
+                    },
+                    "management": {
+                        "management_interface": "mgmt0",
+                        "default_gateway": "10.0.0.1",
+                    },
+                    "security": {
+                        "ssh_enabled": True,
+                        "telnet_enabled": False,
+                        "password_encryption": True,
+                    },
+                }
+            },
+        )
+    )
+
+    result = build_device_config(nb, task)
+
+    assert isinstance(result, DeviceConfig)
+    assert result.hostname == "router1"
+
+    assert len(result.interfaces) == 1
+    assert result.interfaces[0].name == "eth0"
+    assert result.interfaces[0].ip_addresses == ["192.168.1.1"]
+
+    assert len(result.vlans) == 1
+    assert result.vlans[0].name == "data"
+    assert result.vlans[0].vlan_id == 10
+
+    assert result.ntp.servers == ["10.0.0.1"]
+    assert result.snmp.communities == ["public"]
+    assert result.ospf.process_id == 1
+    assert result.management.management_interface == "mgmt0"
+    assert result.security.telnet_enabled is False
+
+
+def test_build_device_config_uses_correct_device_lookup():
+    device_obj = SimpleNamespace(id=99)
+    nb = FakeNB(
+        interfaces=[FakeInterface(id=99, name="eth5")],
+        device=device_obj,
+    )
+    task = SimpleNamespace(
+        host=SimpleNamespace(name="router2", data={"config_context": {}})
+    )
+
+    result = build_device_config(nb, task)
+
+    assert len(result.interfaces) == 1
+    assert result.interfaces[0].name == "eth5"
