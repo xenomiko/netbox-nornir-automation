@@ -6,6 +6,8 @@ from automation.renderer import (
     cidr_to_wildcard,
 )
 from automation.nornir_schemas import DeviceConfig
+from jinja2 import DictLoader
+from automation import renderer
 
 
 class TestCidrToNetmask:
@@ -126,3 +128,30 @@ class TestCidrToWildcard:
     def test_invalid_ip_cidr(self, invalid_ip):
         with pytest.raises(ValueError):
             cidr_to_wildcard(invalid_ip)
+
+
+from automation.nornir_schemas import DeviceConfig
+
+
+@pytest.fixture
+def fake_templates(monkeypatch):
+    def set_templates(mapping):
+        monkeypatch.setattr(renderer.JINJA_ENV, "loader", DictLoader(mapping))
+
+    return set_templates
+
+
+def test_hostname_renders(fake_templates):
+    fake_templates({"arista/hostname.j2": "hostname {{ device.hostname }}"})
+    device = DeviceConfig(hostname="ceos1")
+    assert renderer.render_section("hostname", device, "eos") == "hostname ceos1"
+
+
+def test_unspported_platform(fake_templates):
+    fake_templates({"arista/hostname.j2": "hostname {{ device.hostname }}"})
+    device = DeviceConfig(hostname="ceos1")
+    with pytest.raises(ValueError):
+        renderer.render_section("hostname", device, "sohaib")
+
+
+def test_
