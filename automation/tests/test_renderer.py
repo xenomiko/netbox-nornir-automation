@@ -4,10 +4,11 @@ from automation.renderer import (
     cidr_to_ip,
     cidr_to_netmask_only,
     cidr_to_wildcard,
+    render_section,
+    JINJA_ENV,
 )
-from automation.nornir_schemas import DeviceConfig
+from automation.nornir_schemas import DeviceConfig, InterfaceConfig
 from jinja2 import DictLoader
-from automation import renderer
 
 
 class TestCidrToNetmask:
@@ -133,25 +134,72 @@ class TestCidrToWildcard:
 from automation.nornir_schemas import DeviceConfig
 
 
-@pytest.fixture
-def fake_templates(monkeypatch):
-    def set_templates(mapping):
-        monkeypatch.setattr(renderer.JINJA_ENV, "loader", DictLoader(mapping))
+class TestRenderSection:
+    @pytest.fixture
+    def fake_templates(self, monkeypatch):
+        def set_templates(mapping):
+            monkeypatch.setattr(JINJA_ENV, "loader", DictLoader(mapping))
 
-    return set_templates
+        return set_templates
 
+    def test_hostname_renders(self, fake_templates):
+        fake_templates({"arista/hostname.j2": "hostname {{ hostname }}"})
+        device = DeviceConfig(hostname="ceos1")
+        assert render_section("hostname", device, "eos") == "hostname ceos1"
 
-def test_hostname_renders(fake_templates):
-    fake_templates({"arista/hostname.j2": "hostname {{ device.hostname }}"})
-    device = DeviceConfig(hostname="ceos1")
-    assert renderer.render_section("hostname", device, "eos") == "hostname ceos1"
+    def test_unspported_platform(self, fake_templates):
+        fake_templates({"arista/hostname.j2": "hostname {{ hostname }}"})
+        device = DeviceConfig(hostname="ceos1")
+        with pytest.raises(ValueError):
+            render_section("hostname", device, "sohaib")
 
+    def test_device_prefix(self, fake_templates):
+        fake_templates({"arista/hostname.j2": "hostname {{ device.hostname }}"})
+        device = DeviceConfig(hostname="ceos1")
+        assert render_section("hostname", device, "eos") == "hostname ceos1"
 
-def test_unspported_platform(fake_templates):
-    fake_templates({"arista/hostname.j2": "hostname {{ device.hostname }}"})
-    device = DeviceConfig(hostname="ceos1")
-    with pytest.raises(ValueError):
-        renderer.render_section("hostname", device, "sohaib")
+    def test_nested_list_field_correct_name(self, fake_templates):
+        fake_templates(
+            {
+                "arista/interfaces.j2": "{% for i in interfaces %}{{ i.ip_addresses }}{% endfor %}"
+            }
+        )
+        device = DeviceConfig(
+            hostname="ceos1",
+            interfaces=[
+                InterfaceConfig(
+                    name="Ethernet1", ip_addresses=["10.0.0.1/24", "10.0.0.2/24"]
+                )
+            ],
+        )
+        result = render_section("interfaces", device, "eos")
+        assert result == "['10.0.0.1/24', '10.0.0.2/24']"
 
+    def test_nested_list_field_wrong_name(self, fake_templates):
+        fake_templates(
+            {
+                "arista/interfaces.j2": "{% for i in interfaces %}{{ i.ip_address }}{% endfor %}"
+            }
+        )
+        device = DeviceConfig(
+            hostname="ceos1",
+            interfaces=[
+                InterfaceConfig(
+                    name="Ethernet1", ip_addresses=["10.0.0.1/24", "10.0.0.2/24"]
+                )
+            ],
+        )
+        result = render_section("interfaces", device, "eos")
+        assert result == ""
 
-def test_
+    def test_empty_template(self, fake_templates):
+        fake_templates({"arista/hostname.j2": ""})
+        device = DeviceConfig(hostname="ceos1")
+        result = render_section("hostname", device, "eos")
+        assert result == ""
+
+    def test_platform_lookup_is_case_sensitive(self, fake_templates):
+        fake_templates({"arista/hostname.j2": "hostname {{ hostname }}"})
+        device = DeviceConfig(hostname="ceos1")
+        with pytest.raises(ValueError):
+            render_section("hostname", device, "EOS")
