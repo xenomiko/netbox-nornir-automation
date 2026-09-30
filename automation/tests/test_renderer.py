@@ -8,7 +8,7 @@ from automation.renderer import (
     JINJA_ENV,
 )
 from automation.nornir_schemas import DeviceConfig, InterfaceConfig
-from jinja2 import DictLoader
+from jinja2 import DictLoader, TemplateNotFound
 
 
 class TestCidrToNetmask:
@@ -203,3 +203,9 @@ class TestRenderSection:
         device = DeviceConfig(hostname="ceos1")
         with pytest.raises(ValueError):
             render_section("hostname", device, "EOS")
+
+    def test_missing_template(self, fake_templates):
+        fake_templates({})
+        device = DeviceConfig(hostname="ceos1")
+        with pytest.raises(TemplateNotFound):
+            render_section("hostname", device, "eos")
