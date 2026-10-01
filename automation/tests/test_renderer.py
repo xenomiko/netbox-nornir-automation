@@ -6,8 +6,21 @@ from automation.renderer import (
     cidr_to_wildcard,
     render_section,
     JINJA_ENV,
+    render_sections,
+    CONFIG_SECTIONS,
 )
-from automation.nornir_schemas import DeviceConfig, InterfaceConfig
+from automation.nornir_schemas import (
+    DeviceConfig,
+    InterfaceConfig,
+    NtpConfig,
+    OspfConfig,
+    VlanConfig,
+    SecurityConfig,
+    SnmpConfig,
+    StaticRouteConfig,
+    ManagementConfig,
+)
+
 from jinja2 import DictLoader, TemplateNotFound
 
 
@@ -131,16 +144,15 @@ class TestCidrToWildcard:
             cidr_to_wildcard(invalid_ip)
 
 
-from automation.nornir_schemas import DeviceConfig
+@pytest.fixture
+def fake_templates(monkeypatch):
+    def set_templates(mapping):
+        monkeypatch.setattr(JINJA_ENV, "loader", DictLoader(mapping))
+
+    return set_templates
 
 
 class TestRenderSection:
-    @pytest.fixture
-    def fake_templates(self, monkeypatch):
-        def set_templates(mapping):
-            monkeypatch.setattr(JINJA_ENV, "loader", DictLoader(mapping))
-
-        return set_templates
 
     def test_hostname_renders(self, fake_templates):
         fake_templates({"arista/hostname.j2": "hostname {{ hostname }}"})
@@ -209,3 +221,95 @@ class TestRenderSection:
         device = DeviceConfig(hostname="ceos1")
         with pytest.raises(TemplateNotFound):
             render_section("hostname", device, "eos")
+
+
+class TestRenderSections:
+    @pytest.fixture
+    def fake_render_section(self, monkeypatch):
+        calls = []
+
+        def _fake(section, device_config, platform):
+            calls.append((section, platform))
+            return f"rendered-{section}"
+
+        monkeypatch.setattr("automation.renderer.render_section", _fake)
+        return calls
+
+    def test_skips_none_and_empty_sections(self, fake_render_section):
+        device = DeviceConfig(hostname="ceos1")
+        result = render_sections("eos", device)
+        assert result == {"hostname": "rendered-hostname"}
+        assert fake_render_section == [("hostname", "eos")]
+
+    def test_populated_list_section(self, fake_render_section):
+        device = DeviceConfig(
+            hostname="ceos1",
+            interfaces=[InterfaceConfig(name="Ethernet1")],
+        )
+        result = render_sections("eos", device)
+        assert result == {
+            "hostname": "rendered-hostname",
+            "interfaces": "rendered-interfaces",
+        }
+        assert fake_render_section == [("hostname", "eos"), ("interfaces", "eos")]
+
+    @pytest.mark.parametrize(
+        "section, model",
+        [
+            ("ntp", NtpConfig()),
+            ("snmp", SnmpConfig()),
+            ("ospf", OspfConfig(process_id=1)),
+            ("management", ManagementConfig()),
+            ("security", SecurityConfig()),
+        ],
+    )
+    def test_none_capable_sections(self, fake_render_section, section, model):
+        device = DeviceConfig(hostname="ceos1", **{section: model})
+
+        result = render_sections("eos", device)
+        assert result == {
+            "hostname": "rendered-hostname",
+            section: f"rendered-{section}",
+        }
+        assert fake_render_section == [("hostname", "eos"), (section, "eos")]
+
+    def test_false_looking_data(self, fake_render_section):
+        device = DeviceConfig(
+            hostname="ceos1", ntp=NtpConfig(enabled=False, servers=[])
+        )
+        result = render_sections("eos", device)
+        assert result == {"hostname": "rendered-hostname", "ntp": "rendered-ntp"}
+        assert fake_render_section == [("hostname", "eos"), ("ntp", "eos")]
+
+    @pytest.mark.parametrize("platform", ["eos", "ios", "aoscx"])
+    def test_multiple_platforms(self, fake_render_section, platform):
+        device = DeviceConfig(hostname="ceos1")
+        result = render_sections(platform, device)
+        assert result == {"hostname": "rendered-hostname"}
+        assert fake_render_section == [("hostname", platform)]
+
+    def test_missing_template_propagates(self, fake_templates):
+        fake_templates({"arista/hostname.j2": "hostname {{ hostname }}"})
+        device = DeviceConfig(
+            hostname="ceos1",
+            interfaces=[InterfaceConfig(name="Ethernet1")],
+        )
+
+        with pytest.raises(TemplateNotFound) as exc_info:
+            render_sections("eos", device)
+
+        assert "arista/interfaces.j2" in str(exc_info.value)
+
+    def test_result_follows_config_sections_order(self, fake_render_section):
+        device = DeviceConfig(
+            hostname="ceos1",
+            interfaces=[InterfaceConfig(name="Ethernet1")],
+            ntp=NtpConfig(),
+            security=SecurityConfig(),
+        )
+        result = render_sections("eos", device)
+
+        expected = [s for s in CONFIG_SECTIONS if s in result]
+        assert list(result) == expected
+        assert list(result) == ["hostname", "interfaces", "ntp", "security"]
+        assert [section for section, _ in fake_render_section] == list(result)
