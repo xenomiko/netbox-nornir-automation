@@ -14,10 +14,8 @@ from automation.nornir_schemas import (
     InterfaceConfig,
     NtpConfig,
     OspfConfig,
-    VlanConfig,
     SecurityConfig,
     SnmpConfig,
-    StaticRouteConfig,
     ManagementConfig,
 )
 
@@ -159,7 +157,7 @@ class TestRenderSection:
         device = DeviceConfig(hostname="ceos1")
         assert render_section("hostname", device, "eos") == "hostname ceos1"
 
-    def test_unspported_platform(self, fake_templates):
+    def test_unsupported_platform(self, fake_templates):
         fake_templates({"arista/hostname.j2": "hostname {{ hostname }}"})
         device = DeviceConfig(hostname="ceos1")
         with pytest.raises(ValueError):
