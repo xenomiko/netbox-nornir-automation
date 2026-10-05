@@ -1,6 +1,8 @@
 import json
 import pytest
-from automation.tasks import atomic_json_writer
+from automation.tasks import atomic_json_writer, audit_task
+from types import SimpleNamespace
+from pathlib import Path
 
 
 class TestAtomicJsonWriter:
@@ -55,3 +57,31 @@ class TestAtomicJsonWriter:
             atomic_json_writer(target, bad_data)
         assert json.loads(target.read_text(encoding="utf-8")) == old_data
         assert list(tmp_path.iterdir()) == [target]
+
+
+# testing the audit_task function
+
+
+class TestAuditTask:
+    def test_no_drift_when_intended_matches_running(self, tmp_path, monkeypatch):
+        task = SimpleNamespace(host=SimpleNamespace(name="router1", platform="eos"))
+        monkeypatch.setattr(
+            "automation.tasks.build_device_config",
+            lambda nb, task: "fake_device_config",
+        )
+        monkeypatch.setattr(
+            "automation.tasks.render_sections",
+            lambda platform, device_config: {"ntp": "ntp server 10.0.0.1"},
+        )
+        monkeypatch.setattr(
+            "automation.tasks.get_running_config",
+            lambda task, sections: {"ntp": "ntp server 10.0.0.1"},
+        )
+        new_report_dir = tmp_path / "reports"
+        monkeypatch.setattr("automation.tasks.REPORT_DIR", new_report_dir)
+        monkeypatch.setattr("automation.tasks.EXCEPTIONS", {})
+        result = audit_task(task, None, run_id="123456")
+        report_path = result.result["report_path"]
+        report = json.loads(Path(report_path).read_text(encoding="utf-8"))
+        assert report["has_drift"] is False
+        assert report["diffs"]["ntp"] == {"missing": [], "unmanaged": []}
