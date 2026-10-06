@@ -60,28 +60,50 @@ class TestAtomicJsonWriter:
 
 
 # testing the audit_task function
+@pytest.fixture
+def run_audit(tmp_path, monkeypatch):
+    task = SimpleNamespace(host=SimpleNamespace(name="router1", platform="eos"))
+    monkeypatch.setattr(
+        "automation.tasks.build_device_config",
+        lambda nb, task: "fake_device_config",
+    )
+    new_report_dir = tmp_path / "reports"
+    monkeypatch.setattr("automation.tasks.REPORT_DIR", new_report_dir)
 
-
-class TestAuditTask:
-    def test_no_drift_when_intended_matches_running(self, tmp_path, monkeypatch):
-        task = SimpleNamespace(host=SimpleNamespace(name="router1", platform="eos"))
-        monkeypatch.setattr(
-            "automation.tasks.build_device_config",
-            lambda nb, task: "fake_device_config",
-        )
+    def _run(intended, running, exceptions=None):
         monkeypatch.setattr(
             "automation.tasks.render_sections",
-            lambda platform, device_config: {"ntp": "ntp server 10.0.0.1"},
+            lambda platform, device_config: intended,
         )
         monkeypatch.setattr(
             "automation.tasks.get_running_config",
-            lambda task, sections: {"ntp": "ntp server 10.0.0.1"},
+            lambda task, sections: running,
         )
-        new_report_dir = tmp_path / "reports"
-        monkeypatch.setattr("automation.tasks.REPORT_DIR", new_report_dir)
-        monkeypatch.setattr("automation.tasks.EXCEPTIONS", {})
-        result = audit_task(task, None, run_id="123456")
+        monkeypatch.setattr("automation.tasks.EXCEPTIONS", exceptions or {})
+        result = audit_task(task, None, "123456")
         report_path = result.result["report_path"]
         report = json.loads(Path(report_path).read_text(encoding="utf-8"))
+        return result, report
+
+    return _run
+
+
+class TestAuditTask:
+    def test_no_drift_when_intended_matches_running(self, run_audit):
+        result, report = run_audit(
+            intended={"ntp": "ntp server 10.0.0.1"},
+            running={"ntp": "ntp server 10.0.0.1"},
+        )
         assert report["has_drift"] is False
         assert report["diffs"]["ntp"] == {"missing": [], "unmanaged": []}
+
+    def test_drift_when_intended_doesnt_match_running(self, run_audit):
+        result, report = run_audit(
+            intended={"ntp": "ntp server 10.0.0.1"},
+            running={"ntp": "ntp server 10.0.0.2"},
+        )
+        assert report["has_drift"] is True
+        assert report["diffs"]["ntp"] == {
+            "missing": ["ntp server 10.0.0.1"],
+            "unmanaged": ["ntp server 10.0.0.2"],
+        }
