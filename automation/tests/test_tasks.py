@@ -1,9 +1,10 @@
 import json
 import pytest
-from automation.tasks import atomic_json_writer, audit_task
+from automation.tasks import atomic_json_writer, audit_task, remediate_task
 from types import SimpleNamespace
 from pathlib import Path
 from automation.renderer import CONFIG_SECTIONS
+from automation.senders import napalm_senders
 
 
 class TestAtomicJsonWriter:
@@ -249,3 +250,48 @@ class TestAuditTask:
         with pytest.raises(RuntimeError, match="device unreachable"):
             audit_task(task, None, run_id="123456")
         assert not new_report_dir.exists()
+
+
+@pytest.fixture
+def task():
+    return SimpleNamespace(host=SimpleNamespace(name="router1", platform="eos"))
+
+
+class TestRemediateTask:
+    def test_report_file_not_found(self, tmp_path, task):
+        file_path = tmp_path / "misssing.json"
+        result = remediate_task(task, str(file_path), "1233")
+        assert result.failed is True
+        assert "Report file not found" in result.result
+
+    def test_report_file_has_wrong_data_format(self, tmp_path, task):
+        file_path = tmp_path / "false.json"
+        file_path.write_text("interfaces: [unclosed_list\n")
+        result = remediate_task(task, str(file_path), "1233")
+        assert result.failed is True
+        assert "Invalid audit report" in result.result
+
+    def test_report_host_and_task_host_mismatch(self, tmp_path, task):
+        report = {"host": "router2", "run_id": "123456"}
+        file_path = tmp_path / "false.json"
+        file_path.write_text(json.dumps(report))
+        result = remediate_task(task, str(file_path), "123456")
+        assert result.failed is True
+        assert "Host mismatch!" in result.result
+
+    def test_report_run_id_and_task_run_id_mismatch(self, tmp_path, task):
+        report = {"host": "router1", "run_id": "12345"}
+        file_path = tmp_path / "false.json"
+        file_path.write_text(json.dumps(report))
+        result = remediate_task(task, str(file_path), "123456")
+        assert result.failed is True
+        assert "Stale report!" in result.result
+
+    def test_report_has_missing_fields(self, tmp_path, task):
+        report = {"host": "router1", "run_id": "123456"}
+        file_path = tmp_path / "false.json"
+        file_path.write_text(json.dumps(report))
+        result = remediate_task(task, str(file_path), "123456")
+        assert result.failed is True
+        assert "Invalid audit report: required fields are missing" in result.result
+
