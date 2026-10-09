@@ -295,3 +295,52 @@ class TestRemediateTask:
         assert result.failed is True
         assert "Invalid audit report: required fields are missing" in result.result
 
+    @pytest.mark.parametrize(
+        "target_platform,target_module",
+        [
+            ("eos", "automation.senders.napalm_senders.push_config"),
+            ("ios", "automation.senders.scrapli_senders.push_config"),
+            ("aoscx", "automation.senders.scrapli_senders.push_config"),
+        ],
+    )
+    def test_platform_routing(
+        self, tmp_path, monkeypatch, target_platform, target_module
+    ):
+        task = SimpleNamespace(
+            host=SimpleNamespace(name="router1", platform=target_platform)
+        )
+        monkeypatch.setattr("automation.tasks.REPORT_DIR", tmp_path / "reports")
+
+        calls = []
+
+        def fake_push(task, section, config_text, dry_run):
+            calls.append(section)
+            return SimpleNamespace(failed=False, result="pushed")
+
+        monkeypatch.setattr(target_module, fake_push)
+        report = {
+            "host": "router1",
+            "run_id": "123456",
+            "diffs": {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}},
+            "rendered_intended": {"ntp": "ntp server 10.0.0.1"},
+        }
+        file_path = tmp_path / "report.json"
+        file_path.write_text(json.dumps(report))
+        result = remediate_task(task, str(file_path), "123456")
+        assert calls == ["ntp"]
+
+    def test_invalid_platform_isnt_routed(self, tmp_path, monkeypatch):
+        task = SimpleNamespace(host=SimpleNamespace(name="router1", platform="junos"))
+        monkeypatch.setattr("automation.tasks.REPORT_DIR", tmp_path / "reports")
+        calls = []
+        report = {
+            "host": "router1",
+            "run_id": "123456",
+            "diffs": {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}},
+            "rendered_intended": {"ntp": "ntp server 10.0.0.1"},
+        }
+        file_path = tmp_path / "report.json"
+        file_path.write_text(json.dumps(report))
+        result = remediate_task(task, str(file_path), "123456")
+        assert result.failed is True
+        assert "Unsupported platform for remediation" in result.result
