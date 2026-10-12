@@ -4,7 +4,6 @@ from automation.tasks import atomic_json_writer, audit_task, remediate_task
 from types import SimpleNamespace
 from pathlib import Path
 from automation.renderer import CONFIG_SECTIONS
-from automation.senders import napalm_senders
 
 
 class TestAtomicJsonWriter:
@@ -257,6 +256,34 @@ def task():
     return SimpleNamespace(host=SimpleNamespace(name="router1", platform="eos"))
 
 
+def run_remediate(
+    monkeypatch, tmp_path, diffs, rendered_intended, target_sections=None
+):
+    calls = []
+    run_id = "123456"
+    hostname = "router1"
+    task = SimpleNamespace(host=SimpleNamespace(name="router1", platform="eos"))
+    report = {
+        "host": hostname,
+        "run_id": run_id,
+        "diffs": diffs,
+        "rendered_intended": rendered_intended,
+    }
+
+    def fake_push(task, section, config_text, dry_run):
+        calls.append((section, config_text))
+        return SimpleNamespace(failed=False, result="pushed")
+
+    monkeypatch.setattr("automation.senders.napalm_senders.push_config", fake_push)
+    monkeypatch.setattr("automation.tasks.REPORT_DIR", tmp_path / "reports")
+    file_path = tmp_path / "report.json"
+    file_path.write_text(json.dumps(report))
+    result = remediate_task(
+        task, str(file_path), run_id, target_sections=target_sections
+    )
+    return calls, result
+
+
 class TestRemediateTask:
     def test_report_file_not_found(self, tmp_path, task):
         file_path = tmp_path / "misssing.json"
@@ -344,3 +371,18 @@ class TestRemediateTask:
         result = remediate_task(task, str(file_path), "123456")
         assert result.failed is True
         assert "Unsupported platform for remediation" in result.result
+            },
+            "rendered_intended": {
+                "ntp": "ntp server 10.0.0.1",
+                "hostname": "hostname router1",
+            },
+        }
+        monkeypatch.setattr("automation.senders.napalm_senders.push_config", fake_push)
+        monkeypatch.setattr("automation.tasks.REPORT_DIR", tmp_path / "reports")
+        file_path = tmp_path / "report.json"
+        file_path.write_text(json.dumps(report))
+        result = remediate_task(
+            task, str(file_path), "123456", target_sections=["ntp", "bgp"]
+        )
+        assert calls == [("ntp", "ntp server 10.0.0.1")]
+        assert result.failed is False
