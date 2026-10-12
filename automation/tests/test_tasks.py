@@ -454,6 +454,57 @@ class TestRemediateTask:
         )
         assert calls == [("ntp", "ntp server 10.0.0.1")]
         assert result.failed is False
+
+    def test_missing_and_intended_text_both_non_empty(self, tmp_path, monkeypatch):
+        diffs = {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}}
+        rendered_intended = {"ntp": "ntp server 10.0.0.1"}
+        calls, result = calls, result = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
         )
         assert calls == [("ntp", "ntp server 10.0.0.1")]
+        assert result.failed is False
+
+    def test_missing_is_non_empty_but_intended_text_is_empty(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}}
+        rendered_intended = {}
+        calls, result = calls, result = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+        )
+        assert calls == [("ntp", "")]
+        assert result.failed is False
+
+    def test_missing_empty_but_intended_text_non_empty(self, tmp_path, monkeypatch):
+        diffs = {}
+        rendered_intended = {"ntp": "ntp server 10.0.0.1"}
+        calls, result = calls, result = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+        )
+        assert calls == [("ntp", "ntp server 10.0.0.1")]
+        assert result.failed is False
+
+    def test_both_missing_and_intended_text_empty(self, tmp_path, monkeypatch):
+        diffs = {}
+        rendered_intended = {}
+        calls, result = calls, result = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+        )
+        assert calls == []
         assert result.failed is False
