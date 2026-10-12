@@ -371,18 +371,89 @@ class TestRemediateTask:
         result = remediate_task(task, str(file_path), "123456")
         assert result.failed is True
         assert "Unsupported platform for remediation" in result.result
-            },
-            "rendered_intended": {
-                "ntp": "ntp server 10.0.0.1",
-                "hostname": "hostname router1",
+
+    def test_target_section_is_none(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+            "hostname": {"missing": ["hostname router1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+            "hostname": "hostname router1",
+        }
+        calls, _ = run_remediate(
+            monkeypatch, tmp_path, diffs, rendered_intended, target_sections=None
+        )
+        assert calls == [
+            ("ntp", "ntp server 10.0.0.1"),
+            ("hostname", "hostname router1"),
+        ]
+
+    def test_target_sections_order_is_respected(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+            "hostname": {"missing": ["hostname router1"], "unmanaged": []},
+            "snmp": {
+                "missing": ["snmp-server community public RO"],
+                "unmanaged": [],
             },
         }
-        monkeypatch.setattr("automation.senders.napalm_senders.push_config", fake_push)
-        monkeypatch.setattr("automation.tasks.REPORT_DIR", tmp_path / "reports")
-        file_path = tmp_path / "report.json"
-        file_path.write_text(json.dumps(report))
-        result = remediate_task(
-            task, str(file_path), "123456", target_sections=["ntp", "bgp"]
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+            "hostname": "hostname router1",
+            "snmp": "snmp-server community public RO",
+        }
+        calls, _ = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["snmp", "ntp"],
+        )
+        assert calls == [
+            ("snmp", "snmp-server community public RO"),
+            ("ntp", "ntp server 10.0.0.1"),
+        ]
+
+    def test_target_section_is_empty_list(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+            "hostname": {"missing": ["hostname router1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+            "hostname": "hostname router1",
+        }
+
+        calls, result = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=[],
+        )
+        assert calls == []
+        assert result.failed is False
+
+    def test_target_section_doesnt_exist(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+            "hostname": {"missing": ["hostname router1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+            "hostname": "hostname router1",
+        }
+
+        calls, result = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp", "bgp"],
+        )
+        assert calls == [("ntp", "ntp server 10.0.0.1")]
+        assert result.failed is False
         )
         assert calls == [("ntp", "ntp server 10.0.0.1")]
         assert result.failed is False
