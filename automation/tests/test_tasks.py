@@ -263,10 +263,17 @@ def run_remediate(
     rendered_intended,
     target_sections=None,
     failing_sections=None,
+    raising_sections=None,
+    dry_run=True,
+    save_fails=False,
+    save_raises=False,
 ):
     if failing_sections is None:
         failing_sections = []
+    if raising_sections is None:
+        raising_sections = []
     calls = []
+    save_calls = []
     run_id = "123456"
     hostname = "router1"
     task = SimpleNamespace(host=SimpleNamespace(name=hostname, platform="eos"))
@@ -284,6 +291,8 @@ def run_remediate(
         dry_run,
     ):
         calls.append((section, config_text))
+        if section in raising_sections:
+            raise RuntimeError("push exploded")
         if section in failing_sections:
             return SimpleNamespace(failed=True, result="pushed failed")
         else:
@@ -296,6 +305,10 @@ def run_remediate(
     result = remediate_task(
         task, str(file_path), run_id, target_sections=target_sections
     )
+
+    def fake_save(task):
+        save_calls.append()
+
     return calls, result
 
 
@@ -572,6 +585,39 @@ class TestRemediateTask:
         assert result.result["details"]["ntp"] == {
             "success": False,
             "output": "pushed failed",
+        }
+        assert result.result["details"]["hostname"] == {
+            "success": True,
+            "output": "pushed succeeded",
+        }
+
+    def test_exception_in_push_is_recorded_and_later_sections_still_run(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+            "hostname": {"missing": ["hostname router1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+            "hostname": "hostname router1",
+        }
+        calls, result = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp", "hostname"],
+            raising_sections=["ntp"],
+        )
+        assert calls == [
+            ("ntp", "ntp server 10.0.0.1"),
+            ("hostname", "hostname router1"),
+        ]
+        assert result.failed is True
+        assert result.result["details"]["ntp"] == {
+            "success": False,
+            "error": "push exploded",
         }
         assert result.result["details"]["hostname"] == {
             "success": True,
