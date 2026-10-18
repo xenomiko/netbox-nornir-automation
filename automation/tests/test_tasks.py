@@ -622,3 +622,98 @@ class TestRemediateTask:
             "success": True,
             "output": "pushed succeeded",
         }
+
+    def test_dry_run_does_not_save_config(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        calls, result, saved_calls = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=True,
+        )
+        assert saved_calls == []
+        assert calls == [
+            ("ntp", "ntp server 10.0.0.1"),
+        ]
+        assert result.failed is False
+
+    def test_live_run_saves_config_after_successful_push(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        calls, result, saved_calls = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=False,
+        )
+        assert saved_calls == ["router1"]
+        assert calls == [
+            ("ntp", "ntp server 10.0.0.1"),
+        ]
+        assert result.failed is False
+
+    def test_live_run_doesnt_save_config_after_failed_push(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+            "hostname": {"missing": ["hostname router1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+            "hostname": "hostname router1",
+        }
+        calls, result, saved_calls = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp", "hostname"],
+            failing_sections=["ntp"],
+            raising_sections=["hostname"],
+            dry_run=False,
+        )
+        assert saved_calls == []
+        assert calls == [
+            ("ntp", "ntp server 10.0.0.1"),
+            ("hostname", "hostname router1"),
+        ]
+        assert result.failed is True
+        assert "_save_config" not in result.result["details"]
+
+    def test_live_run_saves_even_if_one_push_failed(self, tmp_path, monkeypatch):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+            "hostname": {"missing": ["hostname router1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+            "hostname": "hostname router1",
+        }
+        calls, result, saved_calls = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp", "hostname"],
+            failing_sections=["ntp"],
+            dry_run=False,
+        )
+        assert saved_calls == ["router1"]
+        assert calls == [
+            ("ntp", "ntp server 10.0.0.1"),
+            ("hostname", "hostname router1"),
+        ]
+        assert result.failed is True
+        assert "_save_config" in result.result["details"]
