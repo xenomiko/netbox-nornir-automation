@@ -265,8 +265,6 @@ def run_remediate(
     failing_sections=None,
     raising_sections=None,
     dry_run=True,
-    save_fails=False,
-    save_raises=False,
 ):
     if failing_sections is None:
         failing_sections = []
@@ -284,6 +282,10 @@ def run_remediate(
         "rendered_intended": rendered_intended,
     }
 
+    def fake_save(task):
+        save_calls.append(task.host.name)
+        return SimpleNamespace(failed=False, result="pushed succeeded")
+
     def fake_push(
         task,
         section,
@@ -298,18 +300,15 @@ def run_remediate(
         else:
             return SimpleNamespace(failed=False, result="pushed succeeded")
 
+    monkeypatch.setattr("automation.senders.napalm_senders.save_config", fake_save)
     monkeypatch.setattr("automation.senders.napalm_senders.push_config", fake_push)
     monkeypatch.setattr("automation.tasks.REPORT_DIR", tmp_path / "reports")
     file_path = tmp_path / "report.json"
     file_path.write_text(json.dumps(report))
     result = remediate_task(
-        task, str(file_path), run_id, target_sections=target_sections
+        task, str(file_path), run_id, target_sections=target_sections, dry_run=dry_run
     )
-
-    def fake_save(task):
-        save_calls.append()
-
-    return calls, result
+    return calls, result, save_calls
 
 
 class TestRemediateTask:
@@ -408,7 +407,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, _ = run_remediate(
+        calls, _, _ = run_remediate(
             monkeypatch, tmp_path, diffs, rendered_intended, target_sections=None
         )
         assert calls == [
@@ -430,7 +429,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
             "snmp": "snmp-server community public RO",
         }
-        calls, _ = run_remediate(
+        calls, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -452,7 +451,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
         }
 
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -472,7 +471,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
         }
 
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -496,7 +495,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
             "snmp": "snmp-server community public RO",
         }
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -509,7 +508,7 @@ class TestRemediateTask:
     def test_missing_and_intended_text_both_non_empty(self, tmp_path, monkeypatch):
         diffs = {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}}
         rendered_intended = {"ntp": "ntp server 10.0.0.1"}
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -524,7 +523,7 @@ class TestRemediateTask:
     ):
         diffs = {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}}
         rendered_intended = {"ntp": ""}
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -537,7 +536,7 @@ class TestRemediateTask:
     def test_missing_empty_but_intended_text_non_empty(self, tmp_path, monkeypatch):
         diffs = {"ntp": {"missing": [], "unmanaged": []}}
         rendered_intended = {"ntp": "ntp server 10.0.0.1"}
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -550,7 +549,7 @@ class TestRemediateTask:
     def test_both_missing_and_intended_text_empty(self, tmp_path, monkeypatch):
         diffs = {"ntp": {"missing": [], "unmanaged": []}}
         rendered_intended = {"ntp": ""}
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -569,7 +568,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -602,7 +601,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, result = run_remediate(
+        calls, result, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
