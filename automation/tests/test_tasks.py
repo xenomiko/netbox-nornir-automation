@@ -289,9 +289,9 @@ def run_remediate(
         if save_raises is True:
             raise RuntimeError("push exploded")
         if save_fails is True:
-            return SimpleNamespace(failed=True, result="pushed failed")
+            return SimpleNamespace(failed=True, result="save failed")
         else:
-            return SimpleNamespace(failed=False, result="pushed succeeded")
+            return SimpleNamespace(failed=False, result="save succeeded")
 
     def fake_push(
         task,
@@ -301,11 +301,11 @@ def run_remediate(
     ):
         calls.append((section, config_text))
         if section in raising_sections:
-            raise RuntimeError("save exploded")
+            raise RuntimeError("push exploded")
         if section in failing_sections:
-            return SimpleNamespace(failed=True, result="save failed")
+            return SimpleNamespace(failed=True, result="pushed failed")
         else:
-            return SimpleNamespace(failed=False, result="save succeeded")
+            return SimpleNamespace(failed=False, result="pushed succeeded")
 
     monkeypatch.setattr("automation.senders.napalm_senders.save_config", fake_save)
     monkeypatch.setattr("automation.senders.napalm_senders.push_config", fake_push)
