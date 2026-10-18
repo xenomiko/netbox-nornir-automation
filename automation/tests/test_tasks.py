@@ -265,6 +265,8 @@ def run_remediate(
     failing_sections=None,
     raising_sections=None,
     dry_run=True,
+    save_fails=False,
+    save_raises=False,
 ):
     if failing_sections is None:
         failing_sections = []
@@ -284,7 +286,12 @@ def run_remediate(
 
     def fake_save(task):
         save_calls.append(task.host.name)
-        return SimpleNamespace(failed=False, result="pushed succeeded")
+        if save_raises is True:
+            raise RuntimeError("push exploded")
+        if save_fails is True:
+            return SimpleNamespace(failed=True, result="pushed failed")
+        else:
+            return SimpleNamespace(failed=False, result="pushed succeeded")
 
     def fake_push(
         task,
@@ -294,11 +301,11 @@ def run_remediate(
     ):
         calls.append((section, config_text))
         if section in raising_sections:
-            raise RuntimeError("push exploded")
+            raise RuntimeError("save exploded")
         if section in failing_sections:
-            return SimpleNamespace(failed=True, result="pushed failed")
+            return SimpleNamespace(failed=True, result="save failed")
         else:
-            return SimpleNamespace(failed=False, result="pushed succeeded")
+            return SimpleNamespace(failed=False, result="save succeeded")
 
     monkeypatch.setattr("automation.senders.napalm_senders.save_config", fake_save)
     monkeypatch.setattr("automation.senders.napalm_senders.push_config", fake_push)
@@ -306,7 +313,11 @@ def run_remediate(
     file_path = tmp_path / "report.json"
     file_path.write_text(json.dumps(report))
     result = remediate_task(
-        task, str(file_path), run_id, target_sections=target_sections, dry_run=dry_run
+        task,
+        str(file_path),
+        run_id,
+        target_sections=target_sections,
+        dry_run=dry_run,
     )
     return calls, result, save_calls
 
