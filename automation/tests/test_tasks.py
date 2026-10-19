@@ -287,7 +287,7 @@ def run_remediate(
     def fake_save(task):
         save_calls.append(task.host.name)
         if save_raises is True:
-            raise RuntimeError("push exploded")
+            raise RuntimeError("save exploded")
         if save_fails is True:
             return SimpleNamespace(failed=True, result="save failed")
         else:
@@ -728,3 +728,63 @@ class TestRemediateTask:
         ]
         assert result.failed is True
         assert "_save_config" in result.result["details"]
+
+    def test_save_returning_failure_is_recorded_and_marks_result_failed(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        calls, result, saved_calls = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=False,
+            save_fails=True,
+        )
+        assert saved_calls == ["router1"]
+        assert calls == [("ntp", "ntp server 10.0.0.1")]
+        assert result.failed is True
+        assert result.result["details"]["ntp"] == {
+            "success": True,
+            "output": "pushed succeeded",
+        }
+        assert result.result["details"]["_save_config"] == {
+            "success": False,
+            "output": "save failed",
+        }
+
+    def test_save_raising_is_recorded_and_marks_result_failed(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        calls, result, saved_calls = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=False,
+            save_raises=True,
+        )
+        assert saved_calls == ["router1"]
+        assert calls == [("ntp", "ntp server 10.0.0.1")]
+        assert result.failed is True
+        assert result.result["details"]["ntp"] == {
+            "success": True,
+            "output": "pushed succeeded",
+        }
+        assert result.result["details"]["_save_config"] == {
+            "success": False,
+            "error": "save exploded",
+        }
