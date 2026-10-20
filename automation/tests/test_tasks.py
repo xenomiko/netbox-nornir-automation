@@ -274,6 +274,8 @@ def run_remediate(
         raising_sections = []
     calls = []
     save_calls = []
+    push_dry_runs = []
+
     run_id = "123456"
     hostname = "router1"
     task = SimpleNamespace(host=SimpleNamespace(name=hostname, platform="eos"))
@@ -299,6 +301,7 @@ def run_remediate(
         config_text,
         dry_run,
     ):
+        push_dry_runs.append(task.host.name)
         calls.append((section, config_text))
         if section in raising_sections:
             raise RuntimeError("push exploded")
@@ -319,7 +322,7 @@ def run_remediate(
         target_sections=target_sections,
         dry_run=dry_run,
     )
-    return calls, result, save_calls
+    return calls, result, save_calls, push_dry_runs
 
 
 class TestRemediateTask:
@@ -418,7 +421,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, _, _ = run_remediate(
+        calls, _, _, _ = run_remediate(
             monkeypatch, tmp_path, diffs, rendered_intended, target_sections=None
         )
         assert calls == [
@@ -440,7 +443,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
             "snmp": "snmp-server community public RO",
         }
-        calls, _, _ = run_remediate(
+        calls, _, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -462,7 +465,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
         }
 
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -482,7 +485,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
         }
 
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -506,7 +509,7 @@ class TestRemediateTask:
             "hostname": "hostname router1",
             "snmp": "snmp-server community public RO",
         }
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -519,7 +522,7 @@ class TestRemediateTask:
     def test_missing_and_intended_text_both_non_empty(self, tmp_path, monkeypatch):
         diffs = {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}}
         rendered_intended = {"ntp": "ntp server 10.0.0.1"}
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -534,7 +537,7 @@ class TestRemediateTask:
     ):
         diffs = {"ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []}}
         rendered_intended = {"ntp": ""}
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -547,7 +550,7 @@ class TestRemediateTask:
     def test_missing_empty_but_intended_text_non_empty(self, tmp_path, monkeypatch):
         diffs = {"ntp": {"missing": [], "unmanaged": []}}
         rendered_intended = {"ntp": "ntp server 10.0.0.1"}
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -560,7 +563,7 @@ class TestRemediateTask:
     def test_both_missing_and_intended_text_empty(self, tmp_path, monkeypatch):
         diffs = {"ntp": {"missing": [], "unmanaged": []}}
         rendered_intended = {"ntp": ""}
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -579,7 +582,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -612,7 +615,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, result, _ = run_remediate(
+        calls, result, _, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -641,7 +644,7 @@ class TestRemediateTask:
         rendered_intended = {
             "ntp": "ntp server 10.0.0.1",
         }
-        calls, result, saved_calls = run_remediate(
+        calls, result, saved_calls, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -662,7 +665,7 @@ class TestRemediateTask:
         rendered_intended = {
             "ntp": "ntp server 10.0.0.1",
         }
-        calls, result, saved_calls = run_remediate(
+        calls, result, saved_calls, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -685,7 +688,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, result, saved_calls = run_remediate(
+        calls, result, saved_calls, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -712,7 +715,7 @@ class TestRemediateTask:
             "ntp": "ntp server 10.0.0.1",
             "hostname": "hostname router1",
         }
-        calls, result, saved_calls = run_remediate(
+        calls, result, saved_calls, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -738,7 +741,7 @@ class TestRemediateTask:
         rendered_intended = {
             "ntp": "ntp server 10.0.0.1",
         }
-        calls, result, saved_calls = run_remediate(
+        calls, result, saved_calls, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
@@ -768,7 +771,7 @@ class TestRemediateTask:
         rendered_intended = {
             "ntp": "ntp server 10.0.0.1",
         }
-        calls, result, saved_calls = run_remediate(
+        calls, result, saved_calls, _ = run_remediate(
             monkeypatch,
             tmp_path,
             diffs,
