@@ -830,3 +830,55 @@ class TestRemediateTask:
         )
         assert push_dry_runs == [False]
 
+    def test_remediation_log_is_written_in_the_expected_file(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        _, result, _, _ = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=True,
+        )
+        reports_dir = tmp_path / "reports"
+        log_files = list(reports_dir.glob("*.json"))
+        assert len(log_files) == 1
+        log_file = log_files[0]
+        assert log_file.name.startswith("remediation_router1_")
+        assert log_file.name.endswith("_123456.json")
+        assert Path(result.result["audit_trail"]) == log_file
+
+    def test_remediation_log_is_written_in_the_expected_data(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        _, result, _, _ = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=True,
+        )
+        reports_dir = tmp_path / "reports"
+        log_files = list(reports_dir.glob("*.json"))
+        log_file = log_files[0]
+        log = json.loads(log_file.read_text(encoding="utf-8"))
+        assert log["run_id"] == "123456"
+        assert log["host"] == "router1"
+        assert log["platform"] == "eos"
+        assert log["dry_run"] is True
+        assert log["applied_sections"] == result.result["details"]
+        assert isinstance(log["timestamp"], float)
