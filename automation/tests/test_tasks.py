@@ -301,7 +301,7 @@ def run_remediate(
         config_text,
         dry_run,
     ):
-        push_dry_runs.append(task.host.name)
+        push_dry_runs.append(dry_run)
         calls.append((section, config_text))
         if section in raising_sections:
             raise RuntimeError("push exploded")
@@ -791,3 +791,42 @@ class TestRemediateTask:
             "success": False,
             "error": "save exploded",
         }
+
+    def test_dry_run_is_the_same_between_fake_and_task_when_true(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        _, _, _, push_dry_runs = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=True,
+        )
+        assert push_dry_runs == [True]
+
+    def test_dry_run_is_the_same_between_fake_and_task_when_false(
+        self, tmp_path, monkeypatch
+    ):
+        diffs = {
+            "ntp": {"missing": ["ntp server 10.0.0.1"], "unmanaged": []},
+        }
+        rendered_intended = {
+            "ntp": "ntp server 10.0.0.1",
+        }
+        _, _, _, push_dry_runs = run_remediate(
+            monkeypatch,
+            tmp_path,
+            diffs,
+            rendered_intended,
+            target_sections=["ntp"],
+            dry_run=False,
+        )
+        assert push_dry_runs == [False]
+
