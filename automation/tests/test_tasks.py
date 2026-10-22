@@ -882,3 +882,4 @@ class TestRemediateTask:
         assert log["dry_run"] is True
         assert log["applied_sections"] == result.result["details"]
         assert isinstance(log["timestamp"], float)
+        assert set(result.result) == {"summary", "audit_trail", "details"}
