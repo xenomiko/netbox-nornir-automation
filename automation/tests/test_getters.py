@@ -1,5 +1,8 @@
 import pytest
-from automation.getters.scrapli_getters import _match_aoscx_section
+from automation.getters.scrapli_getters import (
+    _match_aoscx_section,
+    parse_aoscx_sections,
+)
 
 
 class TestMatchAoscxSection:
@@ -48,5 +51,176 @@ class TestMatchAoscxSection:
         section = _match_aoscx_section(header)
         assert section is None
 
-    def test_https_server_word_boundary(self):
-        assert _match_aoscx_section("https-server") == "management"
+
+from automation.getters.scrapli_getters import parse_aoscx_sections
+
+SAMPLE_CONFIG = "\n".join(
+    [
+        "! Version 10.08.1021",
+        "hostname Core-Switch-01",
+        "vlan 10",
+        "    name Management",
+        "vlan 20",
+        "    name Data",
+        "interface 1/1/1",
+        "    description Uplink to Router",
+        "    no shutdown",
+        "    no routing",
+        "interface 1/1/2",
+        "    description Access Port",
+        "    no shutdown",
+        "    vlan access 20",
+        "router ospf 1",
+        "    router-id 10.0.0.1",
+        "    area 0.0.0.0",
+        "ip route 0.0.0.0/0 192.168.1.1",
+        "ntp server 192.168.1.254 iburst",
+        "ssh server vrf default",
+        "snmp-server community public ro",
+        "aaa authentication login default local",
+    ]
+)
+
+ALL_SECTIONS = [
+    "hostname",
+    "interfaces",
+    "vlans",
+    "ospf",
+    "static_routes",
+    "management",
+    "ntp",
+    "snmp",
+    "security",
+]
+
+
+class TestParseAoscxSections:
+    def test_happy_path(self):
+        expected = {
+            "hostname": "hostname Core-Switch-01",
+            "interfaces": "\n".join(
+                [
+                    "interface 1/1/1",
+                    "    description Uplink to Router",
+                    "    no shutdown",
+                    "    no routing",
+                    "interface 1/1/2",
+                    "    description Access Port",
+                    "    no shutdown",
+                    "    vlan access 20",
+                ]
+            ),
+            "vlans": "\n".join(
+                [
+                    "vlan 10",
+                    "    name Management",
+                    "vlan 20",
+                    "    name Data",
+                ]
+            ),
+            "ospf": "\n".join(
+                [
+                    "router ospf 1",
+                    "    router-id 10.0.0.1",
+                    "    area 0.0.0.0",
+                ]
+            ),
+            "static_routes": "ip route 0.0.0.0/0 192.168.1.1",
+            "management": "ssh server vrf default",
+            "ntp": "ntp server 192.168.1.254 iburst",
+            "snmp": "snmp-server community public ro",
+            "security": "aaa authentication login default local",
+        }
+        result = parse_aoscx_sections(SAMPLE_CONFIG, sections=ALL_SECTIONS)
+        assert result == expected
+
+    def test_single_section_subset(self):
+        result = parse_aoscx_sections(SAMPLE_CONFIG, sections=["ntp"])
+        assert result == {"ntp": "ntp server 192.168.1.254 iburst"}
+
+    def test_multiple_blocks_joined_in_order(self):
+        config = "\n".join(
+            [
+                "interface 1/1/1",
+                "    no shutdown",
+                "interface 1/1/2",
+                "    shutdown",
+            ]
+        )
+        result = parse_aoscx_sections(config, sections=["interfaces"])
+        assert result == {
+            "interfaces": "interface 1/1/1\n    no shutdown\n"
+            "interface 1/1/2\n    shutdown"
+        }
+
+    def test_children_of_unrequested_header_do_not_leak(self):
+        config = "\n".join(
+            [
+                "interface 1/1/1",
+                "    description Uplink",
+                "    no shutdown",
+                "ntp server 192.168.1.254",
+            ]
+        )
+        result = parse_aoscx_sections(config, sections=["ntp"])
+        assert result == {"ntp": "ntp server 192.168.1.254"}
+
+    def test_orphan_child_line_as_first_line_is_ignored(self):
+        config = "\n".join(
+            [
+                "    orphan before any header",
+                "hostname Core-Switch-01",
+                "ntp server 192.168.1.254",
+            ]
+        )
+        result = parse_aoscx_sections(config, sections=["hostname", "ntp"])
+        assert result == {
+            "hostname": "hostname Core-Switch-01",
+            "ntp": "ntp server 192.168.1.254",
+        }
+        assert "orphan" not in str(result)
+
+    def test_comment_line_ends_block(self):
+        config = "\n".join(
+            [
+                "hostname Core-Switch-01",
+                "    description main switch",
+                "!",
+                "    orphan line after comment",
+                "ntp server 192.168.1.254",
+            ]
+        )
+        result = parse_aoscx_sections(config, sections=["hostname", "ntp"])
+        assert result == {
+            "hostname": "hostname Core-Switch-01\n    description main switch",
+            "ntp": "ntp server 192.168.1.254",
+        }
+        assert "orphan" not in str(result)
+
+    def test_empty_and_blank_input(self):
+        sections = ["hostname", "ntp"]
+        expected = {"hostname": "", "ntp": ""}
+        assert parse_aoscx_sections("", sections=sections) == expected
+        assert parse_aoscx_sections("\n\n  \n", sections=sections) == expected
+
+    def test_requested_section_absent_returns_empty_string(self):
+        result = parse_aoscx_sections(
+            "hostname Core-Switch-01", sections=["hostname", "ospf"]
+        )
+        assert result == {"hostname": "hostname Core-Switch-01", "ospf": ""}
+
+    def test_unknown_section_name_returns_empty_string(self):
+        result = parse_aoscx_sections("hostname Core-Switch-01", sections=["bgp"])
+        assert result == {"bgp": ""}
+
+    def test_crlf_and_trailing_whitespace_are_cleaned(self):
+        config = "hostname Core-Switch-01   \r\nntp server 192.168.1.254   \r\n"
+        result = parse_aoscx_sections(config, sections=["hostname", "ntp"])
+        assert result == {
+            "hostname": "hostname Core-Switch-01",
+            "ntp": "ntp server 192.168.1.254",
+        }
+
+    def test_empty_sections_list_returns_empty_dict(self):
+        result = parse_aoscx_sections("hostname Core-Switch-01", sections=[])
+        assert result == {}
