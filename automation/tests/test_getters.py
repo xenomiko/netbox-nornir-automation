@@ -2,7 +2,10 @@ import pytest
 from automation.getters.scrapli_getters import (
     _match_aoscx_section,
     parse_aoscx_sections,
+    ensure_scrapli_platform,
 )
+from types import SimpleNamespace
+from nornir.core.inventory import ConnectionOptions
 
 
 class TestMatchAoscxSection:
@@ -224,3 +227,79 @@ class TestParseAoscxSections:
     def test_empty_sections_list_returns_empty_dict(self):
         result = parse_aoscx_sections("hostname Core-Switch-01", sections=[])
         assert result == {}
+
+
+class TestEnsureScrapliPlatform:
+    @pytest.mark.parametrize("bad_platform", ["EOS", "junos", None])
+    def test_unsupported_platform_raises(self, bad_platform):
+        task = SimpleNamespace(
+            host=SimpleNamespace(
+                name="r1", platform=bad_platform, connection_options={}
+            )
+        )
+        with pytest.raises(ValueError):
+            ensure_scrapli_platform(task)
+
+    @pytest.mark.parametrize(
+        "platform, expected_platform",
+        [("eos", "arista_eos"), ("aoscx", "aruba_aoscx"), ("ios", "cisco_iosxe")],
+    )
+    def test_plaform_is_as_expected(self, platform, expected_platform):
+        task = SimpleNamespace(
+            host=SimpleNamespace(name="r1", platform=platform, connection_options={})
+        )
+        result = ensure_scrapli_platform(task)
+        assert result == expected_platform
+
+    def test_ensure_scrapli_platform_preserves_extras(self):
+        existing_opts = ConnectionOptions(extras={"auth_strict_key": False})
+
+        task = SimpleNamespace(
+            host=SimpleNamespace(
+                name="router1",
+                platform="eos",
+                connection_options={"scrapli": existing_opts},
+            )
+        )
+        result = ensure_scrapli_platform(task)
+        assert result == "arista_eos"
+        assert task.host.connection_options["scrapli"].platform == "arista_eos"
+        assert task.host.connection_options["scrapli"].extras == {
+            "auth_strict_key": False
+        }
+
+    def test_preserves_extras(self):
+        task = SimpleNamespace(
+            host=SimpleNamespace(name="r1", platform="eos", connection_options={})
+        )
+        result = ensure_scrapli_platform(task)
+        assert result == "arista_eos"
+        assert task.host.connection_options["scrapli"].platform == "arista_eos"
+
+    def test_overwrites_existing_platform(self):
+        existing_opts = ConnectionOptions(platform="aoscx")
+
+        task = SimpleNamespace(
+            host=SimpleNamespace(
+                name="router1",
+                platform="eos",
+                connection_options={"scrapli": existing_opts},
+            )
+        )
+        result = ensure_scrapli_platform(task)
+        assert result == "arista_eos"
+        assert task.host.connection_options["scrapli"].platform == "arista_eos"
+
+    def test_is_idempotent(self):
+        task = SimpleNamespace(
+            host=SimpleNamespace(
+                name="router1",
+                platform="eos",
+                connection_options={},
+            )
+        )
+        first = ensure_scrapli_platform(task)
+        opts_after_first = task.host.connection_options["scrapli"]
+        second = ensure_scrapli_platform(task)
+        assert first == second
+        assert task.host.connection_options["scrapli"] is opts_after_first
