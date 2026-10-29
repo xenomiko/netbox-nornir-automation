@@ -303,3 +303,7 @@ class TestEnsureScrapliPlatform:
         second = ensure_scrapli_platform(task)
         assert first == second
         assert task.host.connection_options["scrapli"] is opts_after_first
+
+
+class TestScrapliGetter:
+    
