@@ -47,11 +47,12 @@ def build_vlan_config(nb) -> list[VlanConfig]:
     netbox_vlans = list(nb.ipam.vlans.all())
     vlans = []
     for vlan in netbox_vlans:
+        status = getattr(vlan.status, "value", vlan.status)
         vlans.append(
             VlanConfig(
                 vlan_id=vlan.vid,
                 name=vlan.name or None,
-                enabled=vlan.status == "active",
+                enabled=status == "active",
             )
         )
 
