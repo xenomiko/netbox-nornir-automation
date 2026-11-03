@@ -5,7 +5,7 @@ import yaml
 def normalize_config(config_text: str) -> list[str]:
     if not config_text:
         return []
-    return [line.rstrip() for line in config_text.splitlines() if line.strip()]
+    return [line.rstrip() for line in config_text.splitlines() if line.strip() != "!"]
 
 
 def diff_section(
