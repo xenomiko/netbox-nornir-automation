@@ -7,6 +7,7 @@ from .nornir_schemas import (
     ManagementConfig,
     SecurityConfig,
     DeviceConfig,
+    StaticRouteConfig,
 )
 import logging
 from pydantic import ValidationError
@@ -96,6 +97,17 @@ def build_security_config(config_context: dict) -> SecurityConfig | None:
     return build_from_context(SecurityConfig, config_context, "security")
 
 
+def build_static_routes_config(config_context: dict) -> list[StaticRouteConfig]:
+    routes = []
+    for route in config_context.get("static_routes", []):
+        validated = build_from_context(
+            StaticRouteConfig, {"static_routes": route}, "static_routes"
+        )
+        if validated:
+            routes.append(validated)
+    return routes
+
+
 def build_device_config(nb, task) -> DeviceConfig:
     device = nb.dcim.devices.get(name=task.host.name)
     config_context = task.host.data.get("config_context", {})
@@ -109,4 +121,5 @@ def build_device_config(nb, task) -> DeviceConfig:
         ospf=build_ospf_config(config_context),
         management=build_management_config(config_context),
         security=build_security_config(config_context),
+        static_routes=build_static_routes_config(config_context),
     )
