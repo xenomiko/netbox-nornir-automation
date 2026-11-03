@@ -41,7 +41,7 @@ COMMANDS = {
         "management": "show running-config | section ^management",
         "ntp": "show running-config | section ^ntp",
         "snmp": "show running-config | section ^snmp",
-        "security": "show running-config | section ^aaa|^username|^banner",
+        "security": "show running-config | section ^management ssh|^management telnet",
     },
     "ios": {
         "hostname": "show running-config | include ^hostname",
