@@ -1,13 +1,18 @@
 {% for iface in interfaces %}
 interface {{ iface.name }}
-  {% if iface.mgmt_only %}
-  description OOB_Management
-  {% else %}
-  no switchport
-  {% endif %}
-  {% if iface.ip_address %}
-  ip address {{ iface.ip_address }}
-  {% endif %}
-  no shutdown
+{% if iface.description %}
+   description {{ iface.description }}
+{% elif iface.mgmt_only %}
+   description OOB_Management
+{% endif %}
+{% if not iface.mgmt_only %}
+   no switchport
+{% endif %}
+{% for ip in iface.ip_addresses %}
+   {{ 'ipv6' if ':' in ip else 'ip' }} address {{ ip }}
+{% endfor %}
+{% if not iface.enabled %}
+   shutdown
+{% endif %}
 !
 {% endfor %}

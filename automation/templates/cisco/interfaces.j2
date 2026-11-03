@@ -1,19 +1,19 @@
-{% for interface in interfaces -%}
+{% for interface in interfaces %}
 interface {{ interface.name }}
-{% if interface.description -%}
-   description {{ interface.description }}
-{% endif -%}
-{% for ip in interface.ip_addresses -%}
-{% if ':' in ip -%}
-   ipv6 address {{ ip }}
-{% else -%}
-   ip address {{ ip | cidr_to_netmask }}
-{% endif -%}
-{% endfor -%}
-{% if interface.enabled -%}
-   no shutdown
-{% else -%}
-   shutdown
-{% endif -%}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+{% for ip in interface.ip_addresses %}
+{% if ':' in ip %}
+ ipv6 address {{ ip }}
+{% else %}
+ ip address {{ ip | cidr_to_netmask }}
+{% endif %}
+{% endfor %}
+{% if interface.enabled %}
+ no shutdown
+{% else %}
+ shutdown
+{% endif %}
 !
-{% endfor -%}
+{% endfor %}

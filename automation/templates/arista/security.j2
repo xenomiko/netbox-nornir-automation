@@ -1,11 +1,10 @@
-{% if security -%}
-{% if security.ssh_enabled -%}
-management ssh
-   no shutdown
-{% endif -%}
-{% if not security.telnet_enabled -%}
+{% if security %}
+{% if security.telnet_enabled %}
 management telnet
-   shutdown
-{% endif -%}
-!
-{% endif -%}
+no shutdown
+{% endif %}
+{% if not security.ssh_enabled %}
+management ssh
+shutdown
+{% endif %}
+{% endif %}

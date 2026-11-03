@@ -1,3 +1,6 @@
-{% for route in static_routes -%}
-ip route {{ route.prefix | cidr_to_ip }} {{ route.prefix | cidr_to_netmask }}{% if route.outgoing_interface %} {{ route.outgoing_interface }}{% endif %}{% if route.next_hop %} {{ route.next_hop }}{% endif %}{% if route.administrative_distance %} {{ route.administrative_distance }}{% endif %}
-{% endfor -%}
+{% for route in static_routes %}
+ip route {{ route.prefix | cidr_to_ip }} {{ route.prefix | cidr_to_netmask_only }}{% if route.outgoing_interface %} {{
+route.outgoing_interface }}{% endif %}{% if route.next_hop %} {{ route.next_hop }}{% endif %}{% if
+route.administrative_distance %} {{ route.administrative_distance }}{% endif %}
+
+{% endfor %}

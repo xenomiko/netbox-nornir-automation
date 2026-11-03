@@ -1,12 +1,19 @@
 {% for intf in interfaces %}
 {% if intf.name != 'mgmt' %}
 interface {{ intf.name }}
-  {% if intf.type == 'routed' or intf.mode == 'routed' %}
-   routing
-  {% endif %}
-  {% if intf.ipv4 %}
-   ip address {{ intf.ipv4 }}
-  {% endif %}
-   no shutdown
+{% if intf.description %}
+description {{ intf.description }}
+{% endif %}
+{% if intf.ip_addresses %}
+routing
+{% endif %}
+{% for ip in intf.ip_addresses %}
+{{ 'ipv6' if ':' in ip else 'ip' }} address {{ ip }}
+{% endfor %}
+{% if intf.enabled %}
+no shutdown
+{% else %}
+shutdown
+{% endif %}
 {% endif %}
 {% endfor %}
