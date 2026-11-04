@@ -6,8 +6,8 @@ router ospf {{ ospf.process_id }}
 {% for network in ospf.networks %}
 {% set net_parts = network.split() %}
 {% set cidr = net_parts[0] %}
-{% set area_str = net_parts[1:] | join(' ') %}
- network {{ cidr | cidr_to_ip }} {{ cidr | cidr_to_wildcard }} {% if area_str %}{{ area_str }}{% else %}area 0{% endif %}
+{% set area_str = (net_parts[1:] | join(' ')) or 'area 0' %}
+ network {{ cidr | cidr_to_ip }} {{ cidr | cidr_to_wildcard }} {{ area_str }}
 {% endfor %}
 !
 {% endif %}

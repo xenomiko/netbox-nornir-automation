@@ -2,17 +2,17 @@
 interface {{ interface.name }}
 {% if interface.description %}
  description {{ interface.description }}
+{% elif interface.mgmt_only %}
+ description OOB_Management
 {% endif %}
 {% for ip in interface.ip_addresses %}
 {% if ':' in ip %}
- ipv6 address {{ ip }}
+ ipv6 address {{ ip | upper }}
 {% else %}
  ip address {{ ip | cidr_to_netmask }}
 {% endif %}
 {% endfor %}
-{% if interface.enabled %}
- no shutdown
-{% else %}
+{% if not interface.enabled %}
  shutdown
 {% endif %}
 !

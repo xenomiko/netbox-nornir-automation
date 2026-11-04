@@ -1,9 +1,3 @@
-{% set mgmt_iface = interfaces | selectattr('mgmt_only', 'equalto', true) | map(attribute='name') | first | default('GigabitEthernet0/0') %}
-
-interface {{ mgmt_iface }}
- description OOB_Management
- no shutdown
-!
+{% if management and management.default_gateway %}
 ip default-gateway {{ management.default_gateway }}
-line vty 0 4
- transport input ssh
+{% endif %}

@@ -1,5 +1,5 @@
 {% if ospf and ospf.enabled %}
-   router ospf {{ ospf.process_id }}
+router ospf {{ ospf.process_id }}
 {% if ospf.router_id %}
    router-id {{ ospf.router_id }}
 {% endif %}
