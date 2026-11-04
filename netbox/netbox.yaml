@@ -9,7 +9,7 @@ manufacturers:
   - name: "Cisco"
     slug: "cisco"
   - name: "Aruba"
-    slug: "aruba"  
+    slug: "aruba"
 
 platforms:
   - name: "Arista EOS"
@@ -78,22 +78,22 @@ devices:
     device_type: "aoscx"
     platform: "aoscx"
     role: "virtual-router"
-    status: "active"  
+    status: "active"
 
 interfaces:
   # Management Interfaces
   - device_name: "ceos1"
-    name: "Management1"
+    name: "Management0"
     type: "virtual"
     mgmt_only: true
 
   - device_name: "ceos2"
-    name: "Management1"
+    name: "Management0"
     type: "virtual"
     mgmt_only: true
 
   - device_name: "ceos3"
-    name: "Management1"
+    name: "Management0"
     type: "virtual"
     mgmt_only: true
 
@@ -105,7 +105,7 @@ interfaces:
   - device_name: "aoscx1"
     name: "mgmt"
     type: "virtual"
-    mgmt_only: true    
+    mgmt_only: true
 
   # Data Interfaces
   - device_name: "ceos1"
@@ -147,7 +147,7 @@ interfaces:
     type: "1000base-t"
   - device_name: "aoscx1"
     name: "1/1/2"
-    type: "1000base-t"  
+    type: "1000base-t"
 
 ip_addresses:
   # vios1
@@ -180,39 +180,39 @@ ip_addresses:
   - address: "172.20.20.4/24"
     status: "active"
     device_name: "ceos2"
-    interface_name: "Management1"
+    interface_name: "Management0"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::4/64"
     status: "active"
     device_name: "ceos2"
-    interface_name: "Management1"
+    interface_name: "Management0"
     is_primary_ip6: true
 
   # ceos3
   - address: "172.20.20.5/24"
     status: "active"
     device_name: "ceos3"
-    interface_name: "Management1"
+    interface_name: "Management0"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::5/64"
     status: "active"
     device_name: "ceos3"
-    interface_name: "Management1"
+    interface_name: "Management0"
     is_primary_ip6: true
 
   # ceos1
   - address: "172.20.20.6/24"
     status: "active"
     device_name: "ceos1"
-    interface_name: "Management1"
+    interface_name: "Management0"
     is_primary_ip4: true
 
   - address: "3fff:172:20:20::6/64"
     status: "active"
     device_name: "ceos1"
-    interface_name: "Management1"
+    interface_name: "Management0"
     is_primary_ip6: true
 
 cables:
@@ -321,6 +321,8 @@ config_contexts:
         telnet_enabled: false
         password_encryption: true
       static_routes:
+        - prefix: "0.0.0.0/0"
+          next_hop: "172.20.20.1"
         - prefix: "10.100.0.0/16"
           next_hop: "172.20.20.1"
           administrative_distance: 10
