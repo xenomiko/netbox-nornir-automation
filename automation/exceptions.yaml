@@ -1,0 +1,28 @@
+management:
+  - "management api http-commands"
+  - "management api netconf"
+  - "   transport ssh default"
+  - "   transport grpc default"
+  - "management api gnmi"
+  - "   no shutdown"
+  - " shutdown"
+  - "ip default-gateway 172.20.20.1"
+ospf:
+  - "   max-lsa 12000"
+static_routes:
+  - "ipv6 route ::/0 3fff:172:20:20::1"
+  - "ip route vrf clab-mgmt 0.0.0.0 0.0.0.0 172.20.20.1"
+
+interfaces:
+  - " speed auto"
+  - " duplex auto"
+  - " media-type rj45"
+  - " no ip address"
+  - " vrf forwarding clab-mgmt"
+  - " shutdown"
+snmp:
+  - "snmp-server chassis-id"
+
+security:
+  - " logging synchronous"
+  - " login local"
