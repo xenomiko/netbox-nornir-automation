@@ -49,10 +49,10 @@ COMMANDS = {
         "vlans": "show running-config | section vlan",
         "ospf": "show running-config | section router ospf",
         "static_routes": "show running-config | include ip route",
-        "management": "show running-config | section line",
+        "management": "show running-config | include ^ip default-gateway",
         "ntp": "show running-config | include ntp",
         "snmp": "show running-config | include snmp-server",
-        "security": "show running-config | section aaa|username|banner",
+        "security": "show running-config | section ^line vty|^service password-encryption",
     },
 }
 
