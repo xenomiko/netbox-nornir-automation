@@ -42,7 +42,6 @@ def build_interface_config(nb, device) -> list[InterfaceConfig]:
         )
 
     return interfaces
-    return interfaces
 
 
 def build_vlan_config(nb) -> list[VlanConfig]:
