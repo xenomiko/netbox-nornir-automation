@@ -71,3 +71,6 @@ clab-*
 # Keep the lab topology
 !topology.clab.yaml
 topology.clab.yaml.annotations.json
+
+## the report files
+automation/reports/.
