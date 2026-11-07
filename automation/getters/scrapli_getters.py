@@ -1,9 +1,10 @@
 import logging
 import re
+
+from nornir.core.inventory import ConnectionOptions
 from nornir.core.task import Result, Task
 from nornir_scrapli.tasks import send_command
 from scrapli.exceptions import ScrapliException
-from nornir.core.inventory import ConnectionOptions
 
 SCRAPLI_PLATFORM_MAP = {
     "eos": "arista_eos",
@@ -159,7 +160,7 @@ def scrapli_getter(task: Task, section: str) -> Result:
             failed=True,
             result=msg,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         msg = f"Failed to retrieve {section}: {e}"
         logger.error(f"[{task.host.name}] {msg}")
         return Result(

@@ -39,7 +39,9 @@ class NetBoxDeviceCreate(NetBoxBaseSchema):
 class SiteCreate(NetBoxBaseSchema):
     name: str = Field(min_length=1)
     slug: str = Field(min_length=1, max_length=100, pattern=SLUG_PATTERN)
-    status: Literal["active", "planned", "staging", "decommissioning", "retired"] | None = None
+    status: (
+        Literal["active", "planned", "staging", "decommissioning", "retired"] | None
+    ) = None
     region: int | None = None
     group: int | None = None
     time_zone: str | None = Field(default=None, min_length=1)

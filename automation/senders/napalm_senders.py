@@ -23,7 +23,7 @@ def push_config(
             replace=False,
             dry_run=dry_run,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         msg = f"NAPALM push failed for section '{section}': {e}"
         logger.error(f"[{task.host.name}] {msg}")
         return Result(host=task.host, failed=True, result=msg)
@@ -58,7 +58,7 @@ def save_config(task: Task) -> Result:
             output,
         )
         return Result(host=task.host, failed=False, result=output)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         msg = f"NAPALM save failed: {e}"
         logger.error(f"[{task.host.name}] {msg}")
         return Result(host=task.host, failed=True, result=msg)

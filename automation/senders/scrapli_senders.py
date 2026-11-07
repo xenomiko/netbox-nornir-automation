@@ -68,7 +68,7 @@ def push_config(
         msg = f"Scrapli error pushing section '{section}': {e}"
         logger.error(f"[{task.host.name}] {msg}")
         return Result(host=task.host, failed=True, result=msg)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         task.host.close_connections()
         msg = f"Failed to push section '{section}': {type(e).__name__}: {e}"
         logger.error(f"[{task.host.name}] {msg}")
@@ -122,7 +122,7 @@ def save_config(task: Task) -> Result:
         msg = f"Scrapli error saving configuration: {e}"
         logger.error(f"[{task.host.name}] {msg}")
         return Result(host=task.host, failed=True, result=msg)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         task.host.close_connections()
         msg = f"Failed to save configuration: {type(e).__name__}: {e}"
         logger.error(f"[{task.host.name}] {msg}")

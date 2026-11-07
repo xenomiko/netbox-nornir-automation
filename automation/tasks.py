@@ -18,10 +18,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
 REPORT_DIR = BASE_DIR / "reports"
 EXCEPTIONS_FILE = BASE_DIR / "exceptions.yaml"
-try:
-    EXCEPTIONS = load_exceptions(EXCEPTIONS_FILE)
-except FileNotFoundError:
-    raise
+EXCEPTIONS = load_exceptions(EXCEPTIONS_FILE)
 
 
 def atomic_json_writer(file_path: Path, data: dict[str, Any]) -> None:
@@ -37,7 +34,7 @@ def atomic_json_writer(file_path: Path, data: dict[str, Any]) -> None:
         raise
 
 
-def audit_task(task: Task, nb: Any, run_id: str = None) -> Result:
+def audit_task(task: Task, nb: Any, run_id: str | None = None) -> Result:
     host_name = task.host.name
     platform = task.host.platform
     device_config = build_device_config(nb, task)
@@ -171,7 +168,7 @@ def remediate_task(
                 "success": not push_res.failed,
                 "output": push_res.result,
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             pushed_sections[section] = {
                 "success": False,
                 "error": str(e),
@@ -188,7 +185,7 @@ def remediate_task(
                     "success": not save_res.failed,
                     "output": str(save_res.result),
                 }
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 pushed_sections["_save_config"] = {
                     "success": False,
                     "error": str(e),

@@ -109,7 +109,7 @@ def sync_resources(
     def make_key_from_existing(obj) -> tuple:
         key_parts = []
         for f in fields:
-            attr_name, param_name = f if isinstance(f, tuple) else (f, f)
+            _, param_name = f if isinstance(f, tuple) else (f, f)
             if param_name.endswith("_id"):
                 nested_attr = param_name[: -len("_id")]
                 nested_obj = getattr(obj, nested_attr, None)
