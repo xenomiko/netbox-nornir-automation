@@ -2,18 +2,21 @@
 {% if intf.name != 'mgmt' %}
 interface {{ intf.name }}
 {% if intf.description %}
-description {{ intf.description }}
+    description {{ intf.description }}
 {% endif %}
 {% if intf.ip_addresses %}
-routing
+    routing
 {% endif %}
 {% for ip in intf.ip_addresses %}
-{{ 'ipv6' if ':' in ip else 'ip' }} address {{ ip }}
+    {{ 'ipv6' if ':' in ip else 'ip' }} address {{ ip }}
 {% endfor %}
+{% if ospf and ospf.enabled %}
+    ip ospf {{ ospf.process_id }} area 0.0.0.0
+{% endif %}
 {% if intf.enabled %}
-no shutdown
+    no shutdown
 {% else %}
-shutdown
+    shutdown
 {% endif %}
 {% endif %}
 {% endfor %}

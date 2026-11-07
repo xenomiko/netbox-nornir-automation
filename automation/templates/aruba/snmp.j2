@@ -3,6 +3,6 @@
 snmp-server community {{ community }}
 {% endfor %}
 {% for server in snmp.servers %}
-snmp-server host {{ server }} trap community {{ snmp.communities[0] if snmp.communities else 'public' }}
+snmp-server host {{ server }} trap version v2c
 {% endfor %}
 {% endif %}

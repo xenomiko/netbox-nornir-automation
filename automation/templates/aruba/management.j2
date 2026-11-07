@@ -1,1 +1,4 @@
 ssh server vrf mgmt
+{% if security and security.ssh_enabled %}
+ssh server vrf default
+{% endif %}
