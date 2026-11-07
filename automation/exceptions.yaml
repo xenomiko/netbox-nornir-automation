@@ -7,6 +7,7 @@ management:
   - "   no shutdown"
   - " shutdown"
   - "ip default-gateway 172.20.20.1"
+  - "https-server vrf mgmt"
 ospf:
   - "   max-lsa 12000"
 static_routes:
@@ -20,9 +21,22 @@ interfaces:
   - " no ip address"
   - " vrf forwarding clab-mgmt"
   - " shutdown"
+  - "interface mgmt"
+  - "    default-gateway 10.0.0.2"
+  - "    ip static 10.0.0.15/24"
 snmp:
   - "snmp-server chassis-id"
 
 security:
   - " logging synchronous"
   - " login local"
+  - " logging synchronous"
+  - " login local"
+  - "user admin group administrators password ciphertext *"
+vlans:
+  - "vlan 1"
+
+ntp:
+  - "ntp enable"
+  - "ntp vrf mgmt"
+  - "ntp server pool.ntp.org minpoll 4 maxpoll 4 iburst"
