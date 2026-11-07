@@ -3,6 +3,7 @@ nornir>=3.5.0
 nornir_napalm>=0.5.0
 nornir_scrapli>=2025.1.30
 nornir-netbox>=0.3.0
+pynetbox>=7.4.0
 pydantic>=2.13.4
 python-dotenv>=1.2.2
 PyYAML>=6.0.3
