@@ -65,7 +65,7 @@ AOSCX_SECTION_MATCHERS: dict[str, list[str]] = {
     "management": [r"^ssh\s", r"^https-server\b"],
     "ntp": [r"^ntp\s"],
     "snmp": [r"^snmp-server\s"],
-    "security": [r"^aaa\s", r"^user\s", r"^banner\s"],
+    "security": [r"^aaa\s", r"^banner\s"],
 }
 
 
