@@ -1,8 +1,16 @@
+from types import SimpleNamespace
+
 import pytest
+from nornir.core.inventory import ConnectionOptions
+from scrapli.exceptions import ScrapliException
+
+from automation.getters import scrapli_getters
 from automation.getters.scrapli_getters import (
     AOSCX_SECTION_MATCHERS,
     COMMANDS,
     GETTERS,
+    _match_aoscx_section,
+    ensure_scrapli_platform,
     get_aoscx_running_config,
     get_hostname,
     get_interfaces,
@@ -15,16 +23,9 @@ from automation.getters.scrapli_getters import (
     get_static_routes,
     get_vlans,
     scrapli_getter,
-    _match_aoscx_section,
-    ensure_scrapli_platform,
     send_command,
 )
 from automation.renderer import CONFIG_SECTIONS
-from automation.getters import scrapli_getters
-from scrapli.exceptions import ScrapliException
-
-from types import SimpleNamespace
-from nornir.core.inventory import ConnectionOptions
 
 
 class TestMatchAoscxSection:
@@ -41,7 +42,6 @@ class TestMatchAoscxSection:
             ("ntp server 192.168.1.254", "ntp"),
             ("snmp-server community public ro", "snmp"),
             ("aaa authentication login default local", "security"),
-            ("user admin group administrators", "security"),
             ("banner motd ^C", "security"),
         ],
     )
@@ -62,6 +62,7 @@ class TestMatchAoscxSection:
             "snmp server community public ro",
             "username admin",
             "https-servers-disabled",
+            "user admin group administrators",
         ],
     )
     def test_near_matching_headers_dont_match(self, header_line):

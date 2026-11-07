@@ -4,7 +4,6 @@ import sys
 import time
 import uuid
 import warnings
-from typing import List, Optional
 
 from automation.nornir_config import get_netbox_client, get_nornir
 from automation.tasks import audit_task, remediate_task
@@ -49,10 +48,10 @@ def print_summary(summary_records: list, total_time: float):
 
 
 def run_pipeline(
-    host_filter: Optional[str] = None,
+    host_filter: str | None = None,
     dry_run: bool = True,
     audit_only: bool = False,
-    target_sections: Optional[List[str]] = None,
+    target_sections: list[str] | None = None,
 ):
     start_time = time.perf_counter()
     run_id = str(uuid.uuid4())[:8]

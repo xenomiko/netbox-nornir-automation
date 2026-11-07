@@ -1,10 +1,11 @@
+import logging
 import os
+
+import pynetbox
 from dotenv import load_dotenv
 from nornir import InitNornir
-import pynetbox
-from pynetbox import RequestError
-import logging
 from nornir.core.inventory import ConnectionOptions
+from pynetbox import RequestError
 
 logger = logging.getLogger(__name__)
 load_dotenv()

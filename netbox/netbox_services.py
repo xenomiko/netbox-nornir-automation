@@ -1,14 +1,14 @@
-import yaml
-from pathlib import Path
-import pynetbox
-import os
-import logging
-from pynetbox import RequestError
-from typing import Any, Dict
-from pynetbox.core.endpoint import Endpoint
-from typing import Union, List, Type
-from pydantic import BaseModel, ValidationError
 import csv
+import logging
+import os
+from pathlib import Path
+from typing import Any
+
+import pynetbox
+import yaml
+from pydantic import BaseModel, ValidationError
+from pynetbox import RequestError
+from pynetbox.core.endpoint import Endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def get_netbox_client(validate_connection: bool = True) -> pynetbox.core.api.Api
     return nb
 
 
-def load_device_data(file_path: Union[str, Path]):
+def load_device_data(file_path: str | Path):
     path = Path(file_path)
 
     if not path.is_file():
@@ -59,11 +59,11 @@ def load_device_data(file_path: Union[str, Path]):
         raise ValueError(f"Error parsing CSV file '{path.name}': {e}") from e
 
 
-def build_slug_cache(endpoint: Endpoint) -> Dict[str, int]:
+def build_slug_cache(endpoint: Endpoint) -> dict[str, int]:
     return {obj.slug: obj.id for obj in endpoint.all()}
 
 
-def build_name_cache(endpoint: Endpoint) -> Dict[str, int]:
+def build_name_cache(endpoint: Endpoint) -> dict[str, int]:
     return {obj.name: obj.id for obj in endpoint.all()}
 
 
@@ -93,9 +93,9 @@ def sync_object(endpoint: Endpoint, existing_obj, payload: BaseModel):
 
 def sync_resources(
     endpoint: Endpoint,
-    items: List[Dict[str, Any]],
-    model_class: Type[BaseModel],
-    lookup_field: Union[str, List[Union[str, tuple]]] = "slug",
+    items: list[dict[str, Any]],
+    model_class: type[BaseModel],
+    lookup_field: str | list[str | tuple] = "slug",
 ):
     fields = [lookup_field] if isinstance(lookup_field, str) else lookup_field
 
@@ -147,7 +147,7 @@ def sync_resources(
     return created_or_found_objects
 
 
-def sync_cable(nb, cables_data: List[Dict[str, Any]]) -> None:
+def sync_cable(nb, cables_data: list[dict[str, Any]]) -> None:
     try:
         interfaces_cache = {
             (i.device.name, i.name): i for i in nb.dcim.interfaces.all()

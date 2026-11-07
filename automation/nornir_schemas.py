@@ -1,10 +1,10 @@
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class InterfaceConfig(BaseModel):
     name: str = Field(min_length=1)
-    description: Optional[str] = None
+    description: str | None = None
     enabled: bool = True
     mgmt_only: bool = False
     ip_addresses: list[str] = Field(default_factory=list)
@@ -12,21 +12,21 @@ class InterfaceConfig(BaseModel):
 
 class VlanConfig(BaseModel):
     vlan_id: int = Field(ge=1, le=4094)
-    name: Optional[str] = None
+    name: str | None = None
     enabled: bool = True
 
 
 class StaticRouteConfig(BaseModel):
     prefix: str = Field(min_length=1)
-    next_hop: Optional[str] = None
-    outgoing_interface: Optional[str] = None
-    administrative_distance: Optional[int] = Field(default=None, ge=1)
+    next_hop: str | None = None
+    outgoing_interface: str | None = None
+    administrative_distance: int | None = Field(default=None, ge=1)
 
 
 class OspfConfig(BaseModel):
     enabled: bool = True
     process_id: int = Field(ge=1)
-    router_id: Optional[str] = None
+    router_id: str | None = None
     networks: list[str] = []
 
 
@@ -43,8 +43,8 @@ class SnmpConfig(BaseModel):
 
 class ManagementConfig(BaseModel):
     enabled: bool = True
-    management_interface: Optional[str] = None
-    default_gateway: Optional[str] = None
+    management_interface: str | None = None
+    default_gateway: str | None = None
     ssh_enabled: bool = True
 
 
@@ -59,8 +59,8 @@ class DeviceConfig(BaseModel):
     interfaces: list[InterfaceConfig] = Field(default_factory=list)
     vlans: list[VlanConfig] = Field(default_factory=list)
     static_routes: list[StaticRouteConfig] = Field(default_factory=list)
-    ospf: Optional[OspfConfig] = None
-    ntp: Optional[NtpConfig] = None
-    snmp: Optional[SnmpConfig] = None
-    management: Optional[ManagementConfig] = None
-    security: Optional[SecurityConfig] = None
+    ospf: OspfConfig | None = None
+    ntp: NtpConfig | None = None
+    snmp: SnmpConfig | None = None
+    management: ManagementConfig | None = None
+    security: SecurityConfig | None = None

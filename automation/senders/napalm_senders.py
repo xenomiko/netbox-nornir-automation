@@ -1,6 +1,7 @@
 import logging
-from nornir_napalm.plugins.tasks import napalm_configure, napalm_cli
-from nornir.core.task import Task, Result
+
+from nornir.core.task import Result, Task
+from nornir_napalm.plugins.tasks import napalm_cli, napalm_configure
 
 logger = logging.getLogger(__name__)
 

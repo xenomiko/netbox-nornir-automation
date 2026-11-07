@@ -1,7 +1,8 @@
 import logging
-from nornir.core.task import Task, Result
+
 from nornir.core.exceptions import NornirSubTaskError
-from nornir_scrapli.tasks import send_configs, send_command
+from nornir.core.task import Result, Task
+from nornir_scrapli.tasks import send_command, send_configs
 from scrapli.exceptions import ScrapliException
 
 logger = logging.getLogger(__name__)
@@ -91,9 +92,7 @@ def push_config(
 
 def save_config(task: Task) -> Result:
     platform = task.host.platform
-    if platform == "ios":
-        cmd = "write memory"
-    elif platform == "aoscx":
+    if platform == "ios" or platform == "aoscx":
         cmd = "write memory"
     else:
         msg = f"No save command defined for platform '{platform}'"

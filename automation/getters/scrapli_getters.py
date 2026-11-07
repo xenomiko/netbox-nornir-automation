@@ -4,7 +4,6 @@ from nornir.core.task import Result, Task
 from nornir_scrapli.tasks import send_command
 from scrapli.exceptions import ScrapliException
 from nornir.core.inventory import ConnectionOptions
-from nornir.core.task import Task
 
 SCRAPLI_PLATFORM_MAP = {
     "eos": "arista_eos",

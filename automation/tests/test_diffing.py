@@ -1,10 +1,10 @@
 import pytest
 
 from automation.diffing import (
-    normalize_config,
     diff_section,
-    load_exceptions,
     filter_unmanaged,
+    load_exceptions,
+    normalize_config,
 )
 
 

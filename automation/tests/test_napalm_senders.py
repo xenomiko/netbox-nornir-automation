@@ -1,5 +1,6 @@
-import pytest
 from types import SimpleNamespace
+
+import pytest
 
 from automation.senders.napalm_senders import (
     napalm_cli,

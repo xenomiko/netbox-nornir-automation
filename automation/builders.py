@@ -1,16 +1,18 @@
-from .nornir_schemas import (
-    InterfaceConfig,
-    VlanConfig,
-    NtpConfig,
-    SnmpConfig,
-    OspfConfig,
-    ManagementConfig,
-    SecurityConfig,
-    DeviceConfig,
-    StaticRouteConfig,
-)
 import logging
+
 from pydantic import ValidationError
+
+from .nornir_schemas import (
+    DeviceConfig,
+    InterfaceConfig,
+    ManagementConfig,
+    NtpConfig,
+    OspfConfig,
+    SecurityConfig,
+    SnmpConfig,
+    StaticRouteConfig,
+    VlanConfig,
+)
 
 logger = logging.getLogger(__name__)
 

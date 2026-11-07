@@ -1,14 +1,9 @@
 # main.py
 import logging
+from pathlib import Path
+
 from dotenv import load_dotenv
-from .netbox_services import (
-    get_netbox_client,
-    load_device_data,
-    sync_cable,
-    sync_resources,
-    build_name_cache,
-    build_slug_cache,
-)
+
 from .netbox_schemas import (
     ConfigContextCreate,
     DeviceTypeCreate,
@@ -21,7 +16,14 @@ from .netbox_schemas import (
     SiteCreate,
     VlanCreate,
 )
-from pathlib import Path
+from .netbox_services import (
+    build_name_cache,
+    build_slug_cache,
+    get_netbox_client,
+    load_device_data,
+    sync_cable,
+    sync_resources,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -94,7 +96,7 @@ def main():
     }
     for cc in config_contexts_data:
         for field in relation_endpoints:
-            if field in cc and cc[field]:
+            if cc.get(field):
                 cc[field] = [relation_caches[field][slug] for slug in cc[field]]
 
     sync_resources(

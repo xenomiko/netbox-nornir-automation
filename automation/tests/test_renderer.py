@@ -1,25 +1,25 @@
 import pytest
-from automation.renderer import (
-    cidr_to_netmask,
-    cidr_to_ip,
-    cidr_to_netmask_only,
-    cidr_to_wildcard,
-    render_section,
-    JINJA_ENV,
-    render_sections,
-    CONFIG_SECTIONS,
-)
+from jinja2 import DictLoader, TemplateNotFound
+
 from automation.nornir_schemas import (
     DeviceConfig,
     InterfaceConfig,
+    ManagementConfig,
     NtpConfig,
     OspfConfig,
     SecurityConfig,
     SnmpConfig,
-    ManagementConfig,
 )
-
-from jinja2 import DictLoader, TemplateNotFound
+from automation.renderer import (
+    CONFIG_SECTIONS,
+    JINJA_ENV,
+    cidr_to_ip,
+    cidr_to_netmask,
+    cidr_to_netmask_only,
+    cidr_to_wildcard,
+    render_section,
+    render_sections,
+)
 
 
 class TestCidrToNetmask:

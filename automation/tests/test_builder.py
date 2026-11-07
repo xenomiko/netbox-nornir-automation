@@ -1,28 +1,27 @@
 from types import SimpleNamespace
-from automation.builders import (
-    build_interface_config,
-    build_vlan_config,
-    intended_vlans_dict,
-    build_ntp_config,
-    build_snmp_config,
-    build_ospf_config,
-    build_management_config,
-    build_security_config,
-    build_device_config,
-    build_from_context,
-)
+
 import pytest
 from pydantic import ValidationError
+
+from automation.builders import (
+    build_device_config,
+    build_from_context,
+    build_interface_config,
+    build_management_config,
+    build_ntp_config,
+    build_ospf_config,
+    build_security_config,
+    build_snmp_config,
+    build_vlan_config,
+    intended_vlans_dict,
+)
 from automation.nornir_schemas import (
-    NtpConfig,
-    VlanConfig,
-    SecurityConfig,
-    SnmpConfig,
-    StaticRouteConfig,
-    OspfConfig,
     DeviceConfig,
     ManagementConfig,
-    InterfaceConfig,
+    NtpConfig,
+    OspfConfig,
+    SecurityConfig,
+    SnmpConfig,
 )
 
 

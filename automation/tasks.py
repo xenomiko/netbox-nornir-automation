@@ -1,16 +1,18 @@
-from .getters.scrapli_getters import get_running_config
-from .builders import build_device_config
-from .renderer import render_sections, CONFIG_SECTIONS
-from .diffing import filter_unmanaged, diff_section, load_exceptions
+import json
 import logging
 import os
 import tempfile
 import time
 from datetime import datetime
-import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from nornir.core.task import Task, Result
+from typing import Any
+
+from nornir.core.task import Result, Task
+
+from .builders import build_device_config
+from .diffing import diff_section, filter_unmanaged, load_exceptions
+from .getters.scrapli_getters import get_running_config
+from .renderer import CONFIG_SECTIONS, render_sections
 
 logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
@@ -22,7 +24,7 @@ except FileNotFoundError:
     raise
 
 
-def atomic_json_writer(file_path: Path, data: Dict[str, Any]) -> None:
+def atomic_json_writer(file_path: Path, data: dict[str, Any]) -> None:
     file_path.parent.mkdir(parents=True, exist_ok=True)
     temp_fd, temp_path = tempfile.mkstemp(dir=file_path.parent, suffix="tmp")
     try:
@@ -41,7 +43,7 @@ def audit_task(task: Task, nb: Any, run_id: str = None) -> Result:
     device_config = build_device_config(nb, task)
     rendered_sections = render_sections(platform, device_config)
     running_sections = get_running_config(task, CONFIG_SECTIONS)
-    diffs: Dict[str, Dict[str, List[str]]] = {}
+    diffs: dict[str, dict[str, list[str]]] = {}
     has_drift = False
     for section in CONFIG_SECTIONS:
         intended = rendered_sections.get(section, "")
@@ -84,7 +86,7 @@ def remediate_task(
     task: Task,
     report_path: str,
     expected_run_id: str,
-    target_sections: Optional[List[str]] = None,
+    target_sections: list[str] | None = None,
     dry_run: bool = True,
 ) -> Result:
     host_name = task.host.name
@@ -152,7 +154,7 @@ def remediate_task(
         if target_sections is not None
         else list(report_data["diffs"].keys())
     )
-    pushed_sections: Dict[str, Any] = {}
+    pushed_sections: dict[str, Any] = {}
     for section in sections_to_process:
         missing_lines = report_data["diffs"].get(section, {}).get("missing", [])
         intended_text = report_data["rendered_intended"].get(section, "")

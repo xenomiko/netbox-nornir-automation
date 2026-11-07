@@ -1,9 +1,11 @@
 import json
-import pytest
-from automation.tasks import atomic_json_writer, audit_task, remediate_task
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
 from automation.renderer import CONFIG_SECTIONS
+from automation.tasks import atomic_json_writer, audit_task, remediate_task
 
 
 class TestAtomicJsonWriter:

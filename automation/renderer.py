@@ -1,7 +1,9 @@
 import ipaddress
 import logging
 from pathlib import Path
+
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+
 from .nornir_schemas import DeviceConfig
 
 logger = logging.getLogger(__name__)
